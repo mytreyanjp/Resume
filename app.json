@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Resume Builder",
+    "slug": "resume-builder-app",
+    "version": "1.0.0",
+    "scheme": "com.yourcompany.resumebuilder",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "orientation": "portrait",
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourcompany.resumebuilder"
+    },
+    "android": {
+      "package": "com.yourcompany.resumebuilder",
+      "versionCode": 1
+    }
+  }
+}
