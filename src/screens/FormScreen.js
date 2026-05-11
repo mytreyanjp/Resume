@@ -232,7 +232,7 @@ export default function FormScreen({ user, onSignOut, onGoToBuilder }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F9FC'
+    backgroundColor: '#0F172A'
   },
   content: {
     padding: 20,
@@ -258,11 +258,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1D2939'
+    color: '#F8FAFC'
   },
   headerEmail: {
     fontSize: 14,
-    color: '#64748B'
+    color: '#94A3B8'
   },
   headerActions: {
     flexDirection: 'row',
@@ -271,46 +271,46 @@ const styles = StyleSheet.create({
   buildBtn: {
     padding: 8,
     marginRight: 10,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#334155',
     borderRadius: 8
   },
   buildText: {
-    color: '#3366FF',
+    color: '#60A5FA',
     fontWeight: 'bold'
   },
   logoutBtn: {
     padding: 8
   },
   logoutText: {
-    color: '#EF4444',
+    color: '#F87171',
     fontWeight: '600'
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: '#1E293B',
     padding: 20,
     borderRadius: 16,
     marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 2
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#334155',
+    color: '#F8FAFC',
     marginBottom: 16
   },
   input: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#0F172A',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#334155',
     borderRadius: 10,
     padding: 14,
     fontSize: 15,
     marginBottom: 12,
-    color: '#0F172A'
+    color: '#F8FAFC'
   },
   textArea: {
     height: 100,
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
   itemBlock: {
     marginBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#334155',
     paddingBottom: 8
   },
   addButton: {
@@ -327,12 +327,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10
   },
   addButtonText: {
-    color: '#3366FF',
+    color: '#60A5FA',
     fontWeight: '600',
     fontSize: 15
   },
   saveButton: {
-    backgroundColor: '#3366FF',
+    backgroundColor: '#3B82F6',
     paddingVertical: 16,
     borderRadius: 14,
     alignItems: 'center',

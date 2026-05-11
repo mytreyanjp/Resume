@@ -1,9 +1,30 @@
-node_modules
-.expo
-.expo-shared
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-web-build
+node_modules/
+.expo/
+dist/
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+web-build/
+
+# macOS
 .DS_Store
+
+# Environment variables
 .env
+.env.local
+.env.*.local
+
+# Android/iOS Native folders (Continuous Native Generation)
+# Remove these two lines if you intend to manually edit native code in Android Studio / Xcode
+/android
+/ios
+
+# Credentials and Keystores
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Firebase config
+src/firebaseConfig.js
