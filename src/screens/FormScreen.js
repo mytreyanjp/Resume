@@ -118,7 +118,7 @@ export default function FormScreen({ user, onSignOut, onGoToBuilder }) {
         <View style={styles.userInfo}>
           {user.photoURL && <Image source={{ uri: user.photoURL }} style={styles.avatar} />}
           <View>
-            <Text style={styles.headerTitle}>Build Your Resume</Text>
+            <Text style={styles.headerTitle}>Resume</Text>
             <Text style={styles.headerEmail}>{user.email}</Text>
           </View>
         </View>

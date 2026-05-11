@@ -123,23 +123,23 @@ const styles = StyleSheet.create({
     padding: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F7F9FC'
+    backgroundColor: '#0F172A'
   },
   title: {
     fontSize: 32,
     fontWeight: '700',
     marginBottom: 12,
-    color: '#1D2939'
+    color: '#F8FAFC'
   },
   subtitle: {
     fontSize: 16,
-    color: '#475569',
+    color: '#94A3B8',
     textAlign: 'center',
     marginBottom: 32,
     lineHeight: 22
   },
   button: {
-    backgroundColor: '#3366FF',
+    backgroundColor: '#3B82F6',
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 14,
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: 24,
     borderRadius: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#1E293B',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
@@ -175,28 +175,28 @@ const styles = StyleSheet.create({
   welcome: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#F8FAFC',
     marginBottom: 8
   },
   details: {
     fontSize: 14,
-    color: '#64748B',
+    color: '#94A3B8',
     marginBottom: 16
   },
   logoutButton: {
-    borderColor: '#3366FF',
+    borderColor: '#3B82F6',
     borderWidth: 1,
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 14
   },
   logoutText: {
-    color: '#3366FF',
+    color: '#60A5FA',
     fontWeight: '600'
   },
   helpText: {
     marginTop: 28,
-    color: '#94A3B8',
+    color: '#64748B',
     textAlign: 'center',
     fontSize: 13
   }
