@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Image, Platform, Modal } from 'react-native'
 import * as WebBrowser from 'expo-web-browser'
 import * as Google from 'expo-auth-session/providers/google'
 import { GoogleAuthProvider, signInWithCredential, onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from '../firebaseConfig'
 import FormScreen from './FormScreen'
 import BuilderScreen from './BuilderScreen'
+import SavedResumesScreen from './SavedResumesScreen'
+import { Feather } from '@expo/vector-icons'
 
 WebBrowser.maybeCompleteAuthSession()
 
 export default function AuthScreen() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [currentScreen, setCurrentScreen] = useState('form')
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false)
+  const [currentScreen, setCurrentScreen] = useState('builder')
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     clientId: '321259633436-lu9vmi558o9q3v28e0pui1mnrl2fog5b.apps.googleusercontent.com', // Generic fallback
     webClientId: '321259633436-lu9vmi558o9q3v28e0pui1mnrl2fog5b.apps.googleusercontent.com',
@@ -79,7 +82,8 @@ export default function AuthScreen() {
     }
   }
 
-  const handleSignOut = async () => {
+  const executeSignOut = async () => {
+    setLogoutModalVisible(false)
     try {
       setLoading(true)
       await signOut(auth)
@@ -91,10 +95,64 @@ export default function AuthScreen() {
   }
 
   if (user) {
-    if (currentScreen === 'builder') {
-      return <BuilderScreen user={user} onSignOut={handleSignOut} onGoBack={() => setCurrentScreen('form')} />
-    }
-    return <FormScreen user={user} onSignOut={handleSignOut} onGoToBuilder={() => setCurrentScreen('builder')} />
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0F172A' }}>
+        {/* Global Top Navigation Bar */}
+        <View style={styles.topBar}>
+          <View style={styles.topLeft}>
+            <TouchableOpacity onPress={() => setCurrentScreen('builder')} style={{ marginRight: 16 }}>
+              <Feather name="home" size={22} color={currentScreen === 'builder' ? '#3B82F6' : '#94A3B8'} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setCurrentScreen('form')}>
+              <Feather name="file-text" size={22} color={currentScreen === 'form' ? '#3B82F6' : '#94A3B8'} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setCurrentScreen('saved')} style={{ marginLeft: 16 }}>
+              <Feather name="folder" size={22} color={currentScreen === 'saved' ? '#3B82F6' : '#94A3B8'} />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.topCenter}>
+             <Text style={styles.topBarTitle}>{currentScreen === 'form' ? 'Base Details' : currentScreen === 'builder' ? 'Tailor Resume' : 'Saved Resumes'}</Text>
+          </View>
+
+          <View style={styles.topRight}>
+            {user.photoURL && <Image source={{ uri: user.photoURL }} style={styles.topBarAvatar} />}
+            <TouchableOpacity onPress={() => setLogoutModalVisible(true)} style={{ padding: 8 }}>
+              <Feather name="log-out" size={20} color="#F87171" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Main Content Area */}
+        <View style={{ flex: 1 }}>
+          {currentScreen === 'builder' ? (
+            <BuilderScreen user={user} onGoBack={() => setCurrentScreen('form')} />
+          ) : currentScreen === 'form' ? (
+            <FormScreen user={user} onGoToBuilder={() => setCurrentScreen('builder')} />
+          ) : (
+            <SavedResumesScreen user={user} />
+          )}
+        </View>
+
+        {/* Custom Logout Modal */}
+        <Modal visible={logoutModalVisible} transparent={true} animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Log Out</Text>
+              <Text style={styles.modalMessage}>Are you sure you want to log out?</Text>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity onPress={() => setLogoutModalVisible(false)} style={styles.modalCancelBtn}>
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={executeSignOut} style={styles.modalConfirmBtn}>
+                  <Text style={styles.modalConfirmText}>Log Out</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </View>
+    )
   }
 
   return (
@@ -199,5 +257,53 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     fontSize: 13
-  }
+  },
+  topBar: {
+    flexDirection: 'row',
+    backgroundColor: '#1E293B',
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+    paddingVertical: 12,
+    paddingTop: 48,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  topLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center'
+  },
+  topCenter: {
+    flex: 2,
+    alignItems: 'center'
+  },
+  topBarTitle: {
+    color: '#F8FAFC',
+    fontSize: 16,
+    fontWeight: '700'
+  },
+  topRight: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center'
+  },
+  topBarAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 12
+  },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContent: { backgroundColor: '#1E293B', padding: 24, borderRadius: 16, width: '100%', maxWidth: 400, borderWidth: 1, borderColor: '#334155' },
+  modalTitle: { color: '#F8FAFC', fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  modalMessage: { color: '#94A3B8', fontSize: 14, marginBottom: 24, lineHeight: 20 },
+  modalButtons: { flexDirection: 'row', justifyContent: 'flex-end' },
+  modalCancelBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, marginRight: 12 },
+  modalCancelText: { color: '#94A3B8', fontWeight: '600' },
+  modalConfirmBtn: { backgroundColor: '#EF4444', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
+  modalConfirmText: { color: '#fff', fontWeight: 'bold' }
 })
