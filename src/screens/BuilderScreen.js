@@ -10,14 +10,15 @@ const generateATSResumeHTML = (resume, showPhoto, theme) => {
   const { personal, summary, summaryLink, education, experience, skills, skillsLink, projects, achievements } = resume;
 
   const makeLink = (text, url) => url ? `<a href="${url}" target="_blank">${text}</a>` : text;
+  const getScoreLabel = (score) => String(score).includes('.') ? 'CGPA' : 'Percentage'
 
-  const formatContent = (text, link) => {
+  const formatContent = (text, link, bulletOnMultiple = false) => {
     if (!text) return '';
     let points = text.split(/\n/).map(p => p.trim()).filter(Boolean);
     if (points.length === 1 && text.includes('•')) {
       points = text.split('•').map(p => p.trim()).filter(Boolean);
     }
-    if (points.length > 2) {
+    if ((bulletOnMultiple && points.length > 1) || points.length > 2) {
       const cleanPoints = points.map(p => p.replace(/^[-•*]\s*/, ''));
       return `<ul>${cleanPoints.map(p => `<li>${makeLink(p, link)}</li>`).join('')}</ul>`;
     }
@@ -31,40 +32,42 @@ const generateATSResumeHTML = (resume, showPhoto, theme) => {
       <meta charset="utf-8">
       <style>
         /* Strict A4 Page Configuration */
-        @page { size: A4; margin: 15mm; }
-        body { font-family: '${theme.font}', Helvetica, sans-serif; color: #000; font-size: 11pt; line-height: 1.4; margin: 0; padding: 0; background: #e2e8f0; }
+        @page { size: A4; margin: 10mm; }
+        body { font-family: 'Arial', Helvetica, sans-serif; color: #000; font-size: 9.5pt; line-height: 1.2; margin: 0; padding: 0; background: #e2e8f0; }
         
         /* Simulated A4 Paper for Web Preview */
-        .a4-container { background: #fff; width: 210mm; max-width: 100%; min-height: 297mm; margin: 20px auto; padding: 15mm; box-sizing: border-box; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+        .a4-container { background: #fff; width: 210mm; max-width: 100%; min-height: 297mm; margin: 20px auto; padding: 10mm; box-sizing: border-box; box-shadow: 0 4px 10px rgba(0,0,0,0.15); overflow: hidden; }
         
         /* Remove simulation styles when actually printing to PDF */
         @media print { body { background: #fff; } .a4-container { width: 100%; min-height: auto; margin: 0; padding: 0; box-shadow: none; } }
 
         /* ATS-Friendly Typography & Structure */
-        h1 { font-size: 22pt; font-weight: bold; text-align: ${theme.align}; margin: 0 0 5px 0; text-transform: uppercase; color: ${theme.color}; }
-        h2 { font-size: 13pt; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid ${theme.color}; margin: 15px 0 8px 0; padding-bottom: 2px; color: ${theme.color}; }
+        * { box-sizing: border-box; }
+        h1 { font-size: 18pt; font-weight: bold; text-align: center; margin: 0 0 4px 0; text-transform: uppercase; color: #000000; line-height: 1.05; }
+        h2 { font-size: 10.5pt; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000000; margin: 9px 0 4px 0; padding-bottom: 1px; color: #000000; line-height: 1.1; break-after: avoid; }
         
-        .contact-info { text-align: ${theme.align}; font-size: 10pt; margin-bottom: 5px; }
+        .contact-info { text-align: center; font-size: 8.5pt; margin-bottom: 3px; }
         .contact-info a { color: #000; text-decoration: none; }
-        .links-bar { text-align: ${theme.align}; font-size: 10pt; margin-bottom: 15px; }
-        .links-bar a { color: ${theme.color}; text-decoration: none; margin: 0 5px; }
+        .links-bar { text-align: center; font-size: 8.5pt; margin-bottom: 8px; }
+        .links-bar a { color: #000000; text-decoration: none; margin: 0 4px; }
         
-        .photo-container { text-align: ${theme.align}; margin-bottom: 15px; }
-        .photo-container img { width: 80px; height: 80px; border-radius: 40px; }
+        .photo-container { text-align: center; margin-bottom: 8px; }
+        .photo-container img { width: 58px; height: 58px; border-radius: 29px; object-fit: cover; }
         
         .section-content { text-align: left; }
-        .item-block { margin-bottom: 12px; }
+        .item-block { margin-bottom: 6px; break-inside: avoid; }
         
-        .item-header { clear: both; overflow: hidden; margin-bottom: 2px; }
-        .item-title { font-weight: bold; float: left; color: ${theme.color}; }
+        .item-header { clear: both; overflow: hidden; margin-bottom: 1px; }
+        .item-title { font-weight: bold; float: left; color: #000000; }
         .item-date { float: right; }
         .item-subtitle { font-style: italic; clear: both; }
         
-        .item-tech { font-size: 10pt; font-weight: bold; margin-bottom: 4px; }
-        .item-desc { font-size: 11pt; margin-top: 4px; }
+        .item-tech { font-size: 8.5pt; font-weight: bold; margin-bottom: 2px; }
+        .item-desc { font-size: 9.25pt; margin-top: 2px; }
         
-        ul { margin: 5px 0 0 20px; padding: 0; }
-        li { margin-bottom: 4px; }
+        ul { margin: 2px 0 0 14px; padding: 0; }
+        li { margin-bottom: 2px; }
+        p, div, span { orphans: 3; widows: 3; }
       </style>
     </head>
     <body>
@@ -95,85 +98,18 @@ const generateATSResumeHTML = (resume, showPhoto, theme) => {
         ${personal?.leetcode ? `<a href="${personal.leetcode}">LeetCode</a>` : ''}
       </div>
 
-      <!-- 5. Summary -->
-      ${summary ? `
-        <h2>Professional Summary</h2>
-        <div class="section-content">
-          ${formatContent(summary, summaryLink)}
-        </div>
-      ` : ''}
-
-      <!-- 6. Education -->
-      ${education && education.length > 0 ? `
-        <h2>Education</h2>
-        <div class="section-content">
-          ${education.map(ed => `
-            <div class="item-block">
-              <div class="item-header">
-                <span class="item-title">${makeLink(ed.institution, ed.institutionLink)}</span>
-                <span class="item-date">${makeLink(ed.duration, ed.durationLink)}</span>
-              </div>
-              <div class="item-subtitle">${makeLink(ed.course, ed.courseLink)}</div>
-              ${ed.score ? `<div>Score: ${makeLink(ed.score, ed.scoreLink)}</div>` : ''}
-            </div>
-          `).join('')}
-        </div>
-      ` : ''}
-
-      <!-- Work Experience -->
-      ${experience && experience.length > 0 ? `
-        <h2>Work Experience</h2>
-        <div class="section-content">
-          ${experience.map(exp => `
-            <div class="item-block">
-              <div class="item-header">
-                <span class="item-title">${makeLink(exp.company, exp.companyLink)} | <span style="font-weight:normal">${makeLink(exp.role, exp.roleLink)}</span></span>
-                <span class="item-date">${makeLink(exp.duration, exp.durationLink)}</span>
-              </div>
-              <div class="item-desc">${formatContent(exp.summary, exp.summaryLink)}</div>
-            </div>
-          `).join('')}
-        </div>
-      ` : ''}
-
-      <!-- 7. Skills -->
-      ${skills ? `
-        <h2>Skills</h2>
-        <div class="section-content">
-          ${makeLink(skills, skillsLink)}
-        </div>
-      ` : ''}
-
-      <!-- 8. Projects -->
-      ${projects && projects.length > 0 ? `
-        <h2>Projects</h2>
-        <div class="section-content">
-          ${projects.map(proj => `
-            <div class="item-block">
-              <div class="item-header">
-                <span class="item-title">${makeLink(proj.name, proj.nameLink)}${[
-                  proj.demoLink && `<a href="${proj.demoLink}" style="font-size:9pt; margin-left:6px; font-weight:normal; color:${theme.color}; text-decoration:none;">[Live Demo]</a>`,
-                  proj.docLink && `<a href="${proj.docLink}" style="font-size:9pt; margin-left:6px; font-weight:normal; color:${theme.color}; text-decoration:none;">[Docs]</a>`,
-                  proj.videoLink && `<a href="${proj.videoLink}" style="font-size:9pt; margin-left:6px; font-weight:normal; color:${theme.color}; text-decoration:none;">[Video]</a>`,
-                  proj.gitLink && `<a href="${proj.gitLink}" style="font-size:9pt; margin-left:6px; font-weight:normal; color:${theme.color}; text-decoration:none;">[GitHub]</a>`
-                ].filter(Boolean).slice(0, 2).join('')} | <span style="font-weight:normal">${makeLink(proj.role, proj.roleLink)}</span></span>
-              </div>
-              <div class="item-tech">${makeLink(proj.type, proj.typeLink)} | ${makeLink(proj.techStack, proj.techStackLink)}</div>
-              <div class="item-desc">${formatContent(proj.summary, proj.summaryLink)}</div>
-            </div>
-          `).join('')}
-        </div>
-      ` : ''}
-
-      <!-- 9. Accomplishments/Achievements -->
-      ${achievements && achievements.length > 0 ? `
-        <h2>Accomplishments</h2>
-        <div class="section-content">
-          <ul>
-            ${achievements.map(ach => `<li>${makeLink(ach.text, ach.link)}</li>`).join('')}
-          </ul>
-        </div>
-      ` : ''}
+      ${(() => {
+        const sectionsHTML = {
+          summary: summary ? `\n        <h2>Professional Summary</h2>\n        <div class="section-content">\n          ${formatContent(summary, summaryLink)}\n        </div>\n      ` : '',
+          education: education && education.length > 0 ? `\n        <h2>Education</h2>\n        <div class="section-content">\n          ${education.map(ed => `\n            <div class="item-block">\n              <div class="item-header">\n                <span class="item-title">${makeLink(ed.institution, ed.institutionLink)}</span>\n                <span class="item-date">${makeLink(ed.duration, ed.durationLink)}</span>\n              </div>\n              <div class="item-subtitle">${makeLink(ed.course, ed.courseLink)}</div>\n              ${ed.score ? `<div>${getScoreLabel(ed.score)}: ${makeLink(ed.score, ed.scoreLink)}</div>` : ''}\n            </div>\n          `).join('')}\n        </div>\n      ` : '',
+          experience: experience && experience.length > 0 ? `\n        <h2>Work Experience</h2>\n        <div class="section-content">\n          ${experience.map(exp => `\n            <div class="item-block">\n              <div class="item-header">\n                <span class="item-title">${makeLink(exp.company, exp.companyLink)} | <span style="font-weight:normal">${makeLink(exp.role, exp.roleLink)}</span></span>\n                <span class="item-date">${makeLink(exp.duration, exp.durationLink)}</span>\n              </div>\n              <div class="item-desc">${formatContent(exp.summary, exp.summaryLink, theme.experienceBullets ?? false)}</div>\n            </div>\n          `).join('')}\n        </div>\n      ` : '',
+          skills: skills ? `\n        <h2>Skills</h2>\n        <div class="section-content">\n          ${makeLink(typeof skills === 'string' ? skills.split('\n').map(line => { const i = line.indexOf(':'); return i !== -1 ? '<strong>' + line.substring(0, i + 1) + '</strong>' + line.substring(i + 1) : line; }).join('<br>') : skills, skillsLink)}\n        </div>\n      ` : '',
+          projects: projects && projects.length > 0 ? `\n        <h2>Projects</h2>\n        <div class="section-content">\n          ${projects.map(proj => `\n            <div class="item-block">\n              <div class="item-header">\n                <span class="item-title">${makeLink(proj.name, proj.nameLink)}${[proj.demoLink && `<a href="${proj.demoLink}" style="font-size:9pt; margin-left:6px; font-weight:normal; color:#000000; text-decoration:none;">[Live Demo]</a>`, proj.docLink && `<a href="${proj.docLink}" style="font-size:9pt; margin-left:6px; font-weight:normal; color:#000000; text-decoration:none;">[Docs]</a>`, proj.videoLink && `<a href="${proj.videoLink}" style="font-size:9pt; margin-left:6px; font-weight:normal; color:#000000; text-decoration:none;">[Video]</a>`, proj.gitLink && `<a href="${proj.gitLink}" style="font-size:9pt; margin-left:6px; font-weight:normal; color:#000000; text-decoration:none;">[GitHub]</a>`].filter(Boolean).slice(0, 2).join('')} | <span style="font-weight:normal">${makeLink(proj.role, proj.roleLink)}</span></span>\n              </div>\n              <div class="item-tech">${makeLink(proj.type, proj.typeLink)} | ${makeLink(proj.techStack, proj.techStackLink)}</div>\n              <div class="item-desc">${formatContent(proj.summary, proj.summaryLink, theme.projectsBullets ?? true)}</div>\n            </div>\n          `).join('')}\n        </div>\n      ` : '',
+          achievements: achievements && achievements.length > 0 ? `\n        <h2>Accomplishments</h2>\n        <div class="section-content">\n          <ul>\n            ${achievements.map(ach => `<li>${makeLink(ach.text, ach.link)}</li>`).join('')}\n          </ul>\n        </div>\n      ` : ''
+        };
+        
+        return (theme.sectionOrder || ['summary', 'education', 'experience', 'skills', 'projects', 'achievements']).map(sec => sectionsHTML[sec]).join('');
+      })()}
 
       </div>
     </body>
@@ -182,6 +118,7 @@ const generateATSResumeHTML = (resume, showPhoto, theme) => {
 }
 
 export default function BuilderScreen({ user, onGoBack }) {
+  const defaultSectionOrder = ['summary', 'education', 'experience', 'skills', 'projects', 'achievements'];
   const [jd, setJd] = useState('')
   const [loading, setLoading] = useState(false)
   const [finalResume, setFinalResume] = useState(null)
@@ -189,7 +126,9 @@ export default function BuilderScreen({ user, onGoBack }) {
   const [progress, setProgress] = useState(0)
   const [showPhoto, setShowPhoto] = useState(false)
   const [clearModalVisible, setClearModalVisible] = useState(false)
-  const [theme, setTheme] = useState({ font: 'Arial', color: '#000000', align: 'center' })
+  const [theme, setTheme] = useState({ sectionOrder: defaultSectionOrder, projectsBullets: true, experienceBullets: false })
+  const [popupState, setPopupState] = useState({ visible: false, title: '', message: '', isError: false })
+  const [promptHistory, setPromptHistory] = useState([])
   const progressInterval = useRef(null)
 
   // Auto-fetch existing tailored resume on load
@@ -198,8 +137,10 @@ export default function BuilderScreen({ user, onGoBack }) {
       try {
         const docRef = doc(db, 'resumes', user.uid)
         const docSnap = await getDoc(docRef)
-        if (docSnap.exists() && docSnap.data().tailoredResume) {
-          setFinalResume(docSnap.data().tailoredResume)
+        if (docSnap.exists()) {
+          const data = docSnap.data()
+          if (data.tailoredResume) setFinalResume(data.tailoredResume)
+          if (data.promptHistory) setPromptHistory(data.promptHistory)
         }
       } catch (error) {
         console.error("Error loading tailored resume:", error)
@@ -221,6 +162,7 @@ export default function BuilderScreen({ user, onGoBack }) {
   const handleGenerate = async () => {
     if (!jd.trim()) {
       Alert.alert('Missing Info', 'Please paste a Job Description first.')
+      setPopupState({ visible: true, title: 'Missing Info', message: 'Please paste a Job Description first.', isError: true })
       return
     }
 
@@ -235,6 +177,7 @@ export default function BuilderScreen({ user, onGoBack }) {
         clearInterval(progressInterval.current)
         setLoading(false)
         Alert.alert('Error', 'No base resume found. Please fill out your details first.')
+        setPopupState({ visible: true, title: 'Error', message: 'No base resume found. Please fill out your details first.', isError: true })
         return
       }
       const baseResume = docSnap.data()
@@ -244,11 +187,26 @@ export default function BuilderScreen({ user, onGoBack }) {
         You are an expert technical recruiter and resume writer.
         I will provide a Base Resume and a Job Description. 
         1. Analyze the Job Description to extract the core tech stack and requirements.
-        2. Rewrite and tailor ONLY the 'projects' array from my Base Resume to highlight these specific requirements.${(baseResume.projects?.length || 0) >= 3 ? " Ensure the final 'projects' array contains EXACTLY 3 projects. Choose the most relevant ones." : ""}
-        3. Extract a tailored 'skills' array (list of strings) based on my background and the JD.
-        4. Return ONLY a valid JSON object matching this exact structure: { "roleName": "Extracted Job Title", "skills": ["..."], "projects": [{ "name": "...", "nameLink": "...", "type": "...", "typeLink": "...", "role": "...", "roleLink": "...", "gitLink": "...", "docLink": "...", "videoLink": "...", "demoLink": "...", "techStack": "...", "techStackLink": "...", "summary": "...", "summaryLink": "..." }] }. Preserve any existing link values from the base resume. Do not include markdown formatting like \`\`\`json.
+        2. Rewrite and tailor the 'projects' array and 'summary' from my Base Resume to highlight these specific requirements.${(baseResume.projects?.length || 0) >= 3 ? " Ensure the final 'projects' array contains EXACTLY 3 projects. Choose the most relevant ones." : ""}
+        3. For the 'skills' array (list of strings), analyze the user's base skills and the Job Description. You must categorize the user's most relevant skills into the following topics: "Languages", "Web Development", "Backend", "Database", "Frameworks", "Tools".
+           - Each item in the returned 'skills' array should be a string like "Topic: Skill1, Skill2, ...".
+           - The skills listed MUST come from the user's base skills. Do not invent skills.
+           - The order of the topic strings in the array should be based on relevance to the Job Description.
+           - If no user skills fit a topic, omit that topic.
+           - If a relevant skill from the user's base skills does not fit into any of the predefined topics, you are allowed to create a new, appropriate topic for it.
+        4. This resume must fit on a SINGLE A4 page when combined with the user's existing personal, education, experience, and achievements sections.
+        5. Do NOT drop, trim, summarize away, or omit important content. Preserve substance and relevance.
+        6. Prefer dense, neat resume writing: strong phrasing, compact bullets, minimal fluff, and efficient wording that keeps all meaningful content.
+        7. Return ONLY a valid JSON object matching this exact structure: { "roleName": "Extracted Job Title", "summary": "...", "skills": ["..."], "projects": [{ "name": "...", "nameLink": "...", "type": "...", "typeLink": "...", "role": "...", "roleLink": "...", "gitLink": "...", "docLink": "...", "videoLink": "...", "demoLink": "...", "techStack": "...", "techStackLink": "...", "summary": "...", "summaryLink": "..." }] }. Preserve any existing link values from the base resume. Do not include markdown formatting like \`\`\`json.
 
-        Base Resume: ${JSON.stringify({ projects: baseResume.projects, skills: baseResume.skills || '' })}
+        Base Resume: ${JSON.stringify({
+          summary: baseResume.summary || '',
+          skills: baseResume.skills || '',
+          education: baseResume.education || [],
+          experience: baseResume.experience || [],
+          achievements: baseResume.achievements || [],
+          projects: baseResume.projects || []
+        })}
         Job Description: ${jd}
       `
 
@@ -295,14 +253,17 @@ export default function BuilderScreen({ user, onGoBack }) {
       // 3. Merge AI Results with Base Resume (Personal, Experience, etc. stay default)
       const tailoredResume = {
         ...baseResume,
+        baseSkills: baseResume.skills, // Explicitly save original skills
         roleName: aiResult.roleName || 'Tailored Resume',
-        skills: aiResult.skills.join(', '),
-        projects: aiResult.projects,
+        summary: aiResult.summary || baseResume.summary || '',
+        skills: Array.isArray(aiResult.skills) ? aiResult.skills.join('\n') : (aiResult.skills || ''),
+        projects: Array.isArray(aiResult.projects) ? aiResult.projects : [],
       }
 
       // Save the generated resume to Firestore
-      await setDoc(doc(db, 'resumes', user.uid), { tailoredResume }, { merge: true })
+      await setDoc(doc(db, 'resumes', user.uid), { tailoredResume, promptHistory: [] }, { merge: true })
       setFinalResume(tailoredResume)
+      setPromptHistory([])
       clearInterval(progressInterval.current)
       setProgress(100)
       setTimeout(() => {
@@ -314,14 +275,14 @@ export default function BuilderScreen({ user, onGoBack }) {
       clearInterval(progressInterval.current)
       setLoading(false)
       setProgress(0)
-      // Using setTimeout allows React to unmount the loading UI before blocking the web thread with the Alert
-      setTimeout(() => Alert.alert('Error', error.message || 'Failed to generate tailored resume.'), 100)
+      setTimeout(() => setPopupState({ visible: true, title: 'Error', message: error.message || 'Failed to generate tailored resume.', isError: true }), 100)
     }
   }
 
   const handleRefine = async () => {
     if (!refinePrompt.trim()) {
       Alert.alert('Missing Info', 'Please enter your requested changes.')
+      setPopupState({ visible: true, title: 'Missing Info', message: 'Please enter your requested changes.', isError: true })
       return
     }
 
@@ -329,18 +290,40 @@ export default function BuilderScreen({ user, onGoBack }) {
     startProgress()
     try {
       const prompt = `
-        You are an expert technical recruiter and resume writer.
+        You are an expert technical recruiter, resume writer, and designer.
         Here is the current draft of the resume in JSON:
         ${JSON.stringify(finalResume)}
+        
+        Here is the current styling theme:
+        ${JSON.stringify(theme)}
 
-        The user has requested the following changes to their resume:
+        ${promptHistory.length > 0 ? `Previous change requests in this session (for context):\n${promptHistory.map((p, i) => `${i + 1}. "${p}"`).join('\n')}\n` : ''}
+        The user has requested the following NEW changes to their resume or styling:
         "${refinePrompt}"
 
-        Apply these changes appropriately and return ONLY a valid JSON object matching the exact structure. Do not include markdown formatting like \`\`\`json.
+        IMPORTANT: For any changes to the 'skills' field, you must categorize skills into the following topics: "Languages", "Web Development", "Backend", "Database", "Frameworks", "Tools".
+        The skills you list MUST come from the user's base skills, which are: "${finalResume.baseSkills || ''}". Do not invent skills.
+        If a relevant skill from the user's base skills does not fit into any of the predefined topics, you are allowed to create a new, appropriate topic for it.
+        If the user asks to add a skill, only add it if it is in their base skills. If it is not, you can inform them in the 'infoMessage'.
+
+        Apply these changes appropriately while keeping the final resume neat enough to fit on a SINGLE A4 page.
+        Do NOT remove meaningful content just to save space.
+        Prefer denser wording, tighter bullets, and cleaner formatting over content loss.
+        
+        Return ONLY a valid JSON object. 
+        If the user requested layout changes (like adding bullets to experience/projects, or reordering sections like "move skills above education"), include a "theme" object at the root level.
+        The "theme" object can include:
+        - "sectionOrder": array of exactly these strings defining order: ["summary", "education", "experience", "skills", "projects", "achievements"]
+        - "projectsBullets": boolean
+        - "experienceBullets": boolean
+        If the user requested changes that cannot be fulfilled (e.g., irrelevant to resumes, impossible formatting), include an "infoMessage" string at the root level explaining why.
+        The rest of the JSON should contain the updated resume matching the exact structure. Do not include markdown formatting like \`\`\`json.
       `
 
       const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
       let refinedResume;
+      let generatedMessage = 'Resume updated successfully!';
+      let isNotice = false;
       
       if (!API_KEY) {
         await new Promise(resolve => setTimeout(resolve, 2000));
@@ -373,25 +356,53 @@ export default function BuilderScreen({ user, onGoBack }) {
         }
 
         aiText = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
-        refinedResume = JSON.parse(aiText);
+        const parsedResponse = JSON.parse(aiText);
+        
+        if (parsedResponse.theme) {
+          setTheme(prev => ({ ...prev, ...parsedResponse.theme }));
+          delete parsedResponse.theme;
+        }
+        
+        if (parsedResponse.infoMessage) {
+          generatedMessage = parsedResponse.infoMessage;
+          isNotice = true;
+          delete parsedResponse.infoMessage;
+        }
+        
+        refinedResume = parsedResponse;
       }
-      
+      refinedResume = {
+        ...finalResume,
+        ...refinedResume,
+        personal: refinedResume.personal || finalResume.personal,
+        education: refinedResume.education || finalResume.education,
+        experience: refinedResume.experience || finalResume.experience,
+        projects: refinedResume.projects || finalResume.projects,
+        achievements: refinedResume.achievements || finalResume.achievements,
+        skills: Array.isArray(refinedResume.skills) ? refinedResume.skills.join('\n') : (refinedResume.skills || finalResume.skills),
+        summary: refinedResume.summary || finalResume.summary,
+        roleName: refinedResume.roleName || finalResume.roleName
+      }
+      const newPromptHistory = [...promptHistory, refinePrompt]
+
       // Save the updated resume to Firestore
-      await setDoc(doc(db, 'resumes', user.uid), { tailoredResume: refinedResume }, { merge: true })
+      await setDoc(doc(db, 'resumes', user.uid), { tailoredResume: refinedResume, promptHistory: newPromptHistory }, { merge: true })
       setFinalResume(refinedResume)
+      setPromptHistory(newPromptHistory)
       setRefinePrompt('')
       clearInterval(progressInterval.current)
       setProgress(100)
       setTimeout(() => {
         setLoading(false)
         setProgress(0)
+        setPopupState({ visible: true, title: isNotice ? 'Notice' : 'Success', message: generatedMessage, isError: isNotice });
       }, 500)
     } catch (error) {
       console.error("AI Refinement Error:", error)
       clearInterval(progressInterval.current)
       setLoading(false)
       setProgress(0)
-      setTimeout(() => Alert.alert('Error', error.message || 'Failed to refine resume.'), 100)
+      setTimeout(() => setPopupState({ visible: true, title: 'Error', message: error.message || 'Failed to refine resume.', isError: true }), 100)
     }
   }
 
@@ -399,13 +410,14 @@ export default function BuilderScreen({ user, onGoBack }) {
     setClearModalVisible(false)
     setLoading(true)
     try {
-      await setDoc(doc(db, 'resumes', user.uid), { tailoredResume: deleteField() }, { merge: true })
+      await setDoc(doc(db, 'resumes', user.uid), { tailoredResume: deleteField(), promptHistory: deleteField() }, { merge: true })
       setFinalResume(null)
+      setPromptHistory([])
       setJd('')
       setRefinePrompt('')
     } catch (error) {
       console.error("Clear Error:", error)
-      Alert.alert('Error', 'Failed to clear resume.')
+      setPopupState({ visible: true, title: 'Error', message: 'Failed to clear resume.', isError: true })
     } finally {
       setLoading(false)
     }
@@ -422,12 +434,10 @@ export default function BuilderScreen({ user, onGoBack }) {
         theme: theme,
         createdAt: new Date().toISOString()
       });
-      if (Platform.OS === 'web') window.alert('Resume saved under ' + extractedRole + '!');
-      else Alert.alert('Success', 'Resume saved under ' + extractedRole + '!');
+      setPopupState({ visible: true, title: 'Success', message: 'Resume saved under ' + extractedRole + '!', isError: false });
     } catch (error) {
       console.error("Save Error:", error);
-      if (Platform.OS === 'web') window.alert('Failed to save resume.');
-      else Alert.alert('Error', 'Failed to save resume.');
+      setPopupState({ visible: true, title: 'Error', message: 'Failed to save resume.', isError: true });
     } finally {
       setLoading(false);
     }
@@ -450,17 +460,19 @@ export default function BuilderScreen({ user, onGoBack }) {
       }
     } catch (error) {
       console.error("PDF Export Error:", error);
-      Alert.alert("Export Error", "Failed to generate PDF.");
+      setPopupState({ visible: true, title: 'Export Error', message: 'Failed to generate PDF.', isError: true });
     }
   }
 
-  const renderNativeContent = (text, link) => {
+  const getScoreLabel = (score) => String(score).includes('.') ? 'CGPA' : 'Percentage'
+
+  const renderNativeContent = (text, link, bulletOnMultiple = false) => {
     if (!text) return null;
     let points = text.split(/\n/).map(p => p.trim()).filter(Boolean);
     if (points.length === 1 && text.includes('•')) {
       points = text.split('•').map(p => p.trim()).filter(Boolean);
     }
-    if (points.length > 2) {
+    if ((bulletOnMultiple && points.length > 1) || points.length > 2) {
       const cleanPoints = points.map(p => p.replace(/^[-•*]\s*/, ''));
       return (
         <View style={{ marginLeft: 10, marginTop: 4 }}>
@@ -486,6 +498,119 @@ export default function BuilderScreen({ user, onGoBack }) {
       </TouchableOpacity>
     ) : (
       <Text style={[styles.resumeText, { marginTop: 4 }]}>{text}</Text>
+    );
+  };
+
+  const renderWebPreviewText = (text, bulletOnMultiple = false) => {
+    if (!text) return null
+    let points = text.split(/\n/).map(p => p.trim()).filter(Boolean)
+    if (points.length === 1 && text.includes('â€¢')) {
+      points = text.split('â€¢').map(p => p.trim()).filter(Boolean)
+    }
+
+    if ((bulletOnMultiple && points.length > 1) || points.length > 2) {
+      const cleanPoints = points.map(p => p.replace(/^[-â€¢*]\s*/, ''))
+      return cleanPoints.map((point, idx) => (
+        <Text key={idx} style={styles.webPreviewBullet}>• {point}</Text>
+      ))
+    }
+
+    return <Text style={styles.webPreviewBody}>{text}</Text>
+  }
+
+  const WebResumeContent = React.memo(({ finalResume, theme }) => {
+      const webSections = {
+        summary: finalResume.summary ? (
+          <View key="summary" style={styles.webPreviewSection}>
+            <Text style={styles.webPreviewHeading}>Summary</Text>
+            {renderWebPreviewText(finalResume.summary)}
+          </View>
+        ) : null,
+        education: finalResume.education?.length ? (
+          <View key="education" style={styles.webPreviewSection}>
+            <Text style={styles.webPreviewHeading}>Education</Text>
+            {finalResume.education.map((ed, idx) => (
+              <View key={idx} style={styles.webPreviewItem}>
+                <View style={styles.webPreviewItemHeader}>
+                  <Text style={styles.webPreviewStrong}>{ed.institution}</Text>
+                  <Text style={styles.webPreviewMuted}>{ed.duration}</Text>
+                </View>
+                <Text style={styles.webPreviewBody}>{ed.course}</Text>
+                {ed.score ? <Text style={styles.webPreviewMuted}>{getScoreLabel(ed.score)}: {ed.score}</Text> : null}
+              </View>
+            ))}
+          </View>
+        ) : null,
+        experience: finalResume.experience?.length ? (
+          <View key="experience" style={styles.webPreviewSection}>
+            <Text style={styles.webPreviewHeading}>Work Experience</Text>
+            {finalResume.experience.map((exp, idx) => (
+              <View key={idx} style={styles.webPreviewItem}>
+                <View style={styles.webPreviewItemHeader}>
+                  <Text style={styles.webPreviewStrong}>{[exp.company, exp.role].filter(Boolean).join(' | ')}</Text>
+                  {exp.duration ? <Text style={styles.webPreviewMuted}>{exp.duration}</Text> : null}
+                </View>
+                {renderWebPreviewText(exp.summary, theme.experienceBullets ?? false)}
+              </View>
+            ))}
+          </View>
+        ) : null,
+        skills: finalResume.skills ? (
+          <View key="skills" style={styles.webPreviewSection}>
+            <Text style={styles.webPreviewHeading}>Skills</Text>
+            {typeof finalResume.skills === 'string' ? finalResume.skills.split('\n').map((line, idx) => {
+              const colonIdx = line.indexOf(':');
+              if (colonIdx !== -1) {
+                return <Text key={idx} style={styles.webPreviewBody}><Text style={{ fontWeight: 'bold' }}>{line.substring(0, colonIdx + 1)}</Text>{line.substring(colonIdx + 1)}</Text>;
+              }
+              return <Text key={idx} style={styles.webPreviewBody}>{line}</Text>;
+            }) : <Text style={styles.webPreviewBody}>{finalResume.skills}</Text>}
+          </View>
+        ) : null,
+        projects: finalResume.projects?.length ? (
+          <View key="projects" style={styles.webPreviewSection}>
+            <Text style={styles.webPreviewHeading}>Projects</Text>
+            {finalResume.projects.map((proj, idx) => (
+              <View key={idx} style={styles.webPreviewItem}>
+                <Text style={styles.webPreviewStrong}>{[proj.name, proj.role].filter(Boolean).join(' | ')}</Text>
+                <Text style={styles.webPreviewMuted}>{[proj.type, proj.techStack].filter(Boolean).join(' | ')}</Text>
+                {renderWebPreviewText(proj.summary, theme.projectsBullets ?? true)}
+              </View>
+            ))}
+          </View>
+        ) : null,
+        achievements: finalResume.achievements?.length ? (
+          <View key="achievements" style={styles.webPreviewSection}>
+            <Text style={styles.webPreviewHeading}>Accomplishments</Text>
+            {finalResume.achievements.map((ach, idx) => (
+              <Text key={idx} style={styles.webPreviewBullet}>• {ach.text}</Text>
+            ))}
+          </View>
+        ) : null
+      };
+
+      return (
+        <View style={styles.webCompactCard}>
+            <Text style={styles.webPreviewName}>{finalResume.personal?.name}</Text>
+            <Text style={styles.webPreviewMeta}>
+              {[finalResume.personal?.phone, finalResume.personal?.email].filter(Boolean).join(' | ')}
+            </Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+              {finalResume.personal?.portfolio ? <Text style={styles.webPreviewLinkItem} onPress={() => Linking.openURL(finalResume.personal.portfolio)}>Portfolio</Text> : null}
+              {finalResume.personal?.linkedin ? <Text style={styles.webPreviewLinkItem} onPress={() => Linking.openURL(finalResume.personal.linkedin)}>LinkedIn</Text> : null}
+              {finalResume.personal?.github ? <Text style={styles.webPreviewLinkItem} onPress={() => Linking.openURL(finalResume.personal.github)}>GitHub</Text> : null}
+              {finalResume.personal?.leetcode ? <Text style={styles.webPreviewLinkItem} onPress={() => Linking.openURL(finalResume.personal.leetcode)}>LeetCode</Text> : null}
+            </View>
+            {(theme.sectionOrder || defaultSectionOrder).map(sec => webSections[sec])}
+        </View>
+      );
+  });
+
+  const renderWebResumePreview = () => {
+    return (
+      <View style={styles.webA4Sheet}>
+        <WebResumeContent finalResume={finalResume} theme={theme} />
+      </View>
     );
   };
 
@@ -520,7 +645,7 @@ export default function BuilderScreen({ user, onGoBack }) {
               <View style={styles.resultHeaderRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.successTitle}>Resume Generated!</Text>
-                  <Text style={styles.resultDesc}>Review your tailored resume below. Request changes if needed.</Text>
+                  <Text style={styles.resultDesc}>Review your tailored resume below. The layout is compressed to keep full content neatly within A4.</Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm} disabled={loading}>
@@ -538,43 +663,15 @@ export default function BuilderScreen({ user, onGoBack }) {
                 </View>
               </View>
 
-              {/* Theme Customization Toolbar */}
-              {Platform.OS === 'web' && (
-                <View style={styles.themeToolbar}>
-                  <View style={styles.themeGroup}>
-                    <Text style={styles.themeLabel}>Font:</Text>
-                    {['Arial', 'Times New Roman', 'Courier New'].map(f => (
-                      <TouchableOpacity key={f} onPress={() => setTheme({...theme, font: f})} style={[styles.themePill, theme.font === f && styles.themePillActive]}>
-                        <Text style={[styles.themePillText, theme.font === f && styles.themePillTextActive]}>{f.split(' ')[0]}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                  <View style={styles.themeGroup}>
-                    <Text style={styles.themeLabel}>Color:</Text>
-                    {['#000000', '#1D4ED8', '#047857'].map(c => (
-                      <TouchableOpacity key={c} onPress={() => setTheme({...theme, color: c})} style={[styles.colorDot, { backgroundColor: c }, theme.color === c && styles.colorDotActive]} />
-                    ))}
-                  </View>
-                  <View style={styles.themeGroup}>
-                    <Text style={styles.themeLabel}>Align:</Text>
-                    {['left', 'center'].map(a => (
-                      <TouchableOpacity key={a} onPress={() => setTheme({...theme, align: a})} style={[styles.themePill, theme.align === a && styles.themePillActive]}>
-                        <Text style={[styles.themePillText, theme.align === a && styles.themePillTextActive]}>{a}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              )}
-
               {/* VISUAL RESUME LAYOUT */}
               {Platform.OS === 'web' ? (
-                <iframe
-                  srcDoc={generateATSResumeHTML(finalResume, showPhoto, theme)}
-                  style={{ width: '100%', height: 1150, borderWidth: 0, backgroundColor: 'transparent', borderRadius: 8 }}
-                  title="PDF Preview"
-                />
+                <View style={styles.webPreviewShell}>
+                  <ScrollView style={styles.webPreviewScroller} contentContainerStyle={styles.webPreviewContent}>
+                    {renderWebResumePreview()}
+                  </ScrollView>
+                </View>
               ) : (
-                <View style={styles.resumePreview}>
+                <View style={[styles.resumePreview, Platform.OS === 'web' && styles.webResumePreview]}>
                 
                 {/* 1. Name */}
                 {finalResume.personal?.nameLink ? (
@@ -617,200 +714,108 @@ export default function BuilderScreen({ user, onGoBack }) {
 
                 <View style={styles.resumeDivider} />
 
-                {/* 5. Summary */}
-                {finalResume.summary ? (
-                  <>
-                    <Text style={styles.resumeSectionTitle}>Summary</Text>
-                    {renderNativeContent(finalResume.summary, finalResume.summaryLink)}
-                  </>
-                ) : null}
-
-                {/* 6. Education */}
-                {finalResume.education && finalResume.education.length > 0 ? (
-                  <>
-                    <Text style={styles.resumeSectionTitle}>Education</Text>
-                    {finalResume.education.map((ed, idx) => (
-                      <View key={idx} style={styles.resumeItemBlock}>
-                        <View style={styles.resumeItemHeader}>
-                          {ed.institutionLink ? (
-                            <TouchableOpacity onPress={() => Linking.openURL(ed.institutionLink)}>
-                              <Text style={[styles.resumeItemTitle, styles.linkableText]}>{ed.institution}</Text>
-                            </TouchableOpacity>
-                          ) : (
-                            <Text style={styles.resumeItemTitle}>{ed.institution}</Text>
-                          )}
-                          
-                          {ed.durationLink ? (
-                            <TouchableOpacity onPress={() => Linking.openURL(ed.durationLink)}>
-                              <Text style={[styles.resumeItemDate, styles.linkableText]}>{ed.duration}</Text>
-                            </TouchableOpacity>
-                          ) : (
-                            <Text style={styles.resumeItemDate}>{ed.duration}</Text>
-                          )}
-                        </View>
-                        
-                        {ed.courseLink ? (
-                          <TouchableOpacity onPress={() => Linking.openURL(ed.courseLink)}>
-                            <Text style={[styles.resumeItemSubtitle, styles.linkableText]}>{ed.course}</Text>
-                          </TouchableOpacity>
-                        ) : (
-                          <Text style={styles.resumeItemSubtitle}>{ed.course}</Text>
-                        )}
-                        
-                        {ed.score ? (
-                          ed.scoreLink ? (
-                            <TouchableOpacity onPress={() => Linking.openURL(ed.scoreLink)}>
-                              <Text style={[styles.resumeText, styles.linkableText]}>Score: {ed.score}</Text>
-                            </TouchableOpacity>
-                          ) : (
-                            <Text style={styles.resumeText}>Score: {ed.score}</Text>
-                          )
-                        ) : null}
+                {(() => {
+                  const nativeSections = {
+                    summary: finalResume.summary ? (
+                      <View key="summary">
+                        <Text style={styles.resumeSectionTitle}>Summary</Text>
+                        {renderNativeContent(finalResume.summary, finalResume.summaryLink)}
                       </View>
-                    ))}
-                  </>
-                ) : null}
-
-                {/* Work Experience */}
-                {finalResume.experience && finalResume.experience.length > 0 ? (
-                  <>
-                    <Text style={styles.resumeSectionTitle}>Work Experience</Text>
-                    {finalResume.experience.map((exp, idx) => (
-                      <View key={idx} style={styles.resumeItemBlock}>
-                        <View style={styles.resumeItemHeader}>
-                          {exp.companyLink ? (
-                            <TouchableOpacity onPress={() => Linking.openURL(exp.companyLink)}>
-                              <Text style={[styles.resumeItemTitle, styles.linkableText]}>{exp.company}</Text>
-                            </TouchableOpacity>
-                          ) : (
-                            <Text style={styles.resumeItemTitle}>{exp.company}</Text>
-                          )}
-                          
-                          {exp.durationLink ? (
-                            <TouchableOpacity onPress={() => Linking.openURL(exp.durationLink)}>
-                              <Text style={[styles.resumeItemDate, styles.linkableText]}>{exp.duration}</Text>
-                            </TouchableOpacity>
-                          ) : (
-                            <Text style={styles.resumeItemDate}>{exp.duration}</Text>
-                          )}
-                        </View>
-                        
-                        {exp.roleLink ? (
-                          <TouchableOpacity onPress={() => Linking.openURL(exp.roleLink)}>
-                            <Text style={[styles.resumeItemSubtitle, styles.linkableText]}>{exp.role}</Text>
-                          </TouchableOpacity>
-                        ) : (
-                          <Text style={styles.resumeItemSubtitle}>{exp.role}</Text>
-                        )}
-                        
-                        {renderNativeContent(exp.summary, exp.summaryLink)}
-                      </View>
-                    ))}
-                  </>
-                ) : null}
-
-                {/* 7. Skills */}
-                {finalResume.skills ? (
-                  <>
-                    <Text style={styles.resumeSectionTitle}>Skills</Text>
-                    {finalResume.skillsLink ? (
-                      <TouchableOpacity onPress={() => Linking.openURL(finalResume.skillsLink)}>
-                        <Text style={[styles.resumeText, styles.linkableText]}>{finalResume.skills}</Text>
-                      </TouchableOpacity>
-                    ) : (
-                      <Text style={styles.resumeText}>{finalResume.skills}</Text>
-                    )}
-                  </>
-                ) : null}
-
-                {/* 8. Projects */}
-                {finalResume.projects && finalResume.projects.length > 0 ? (
-                  <>
-                    <Text style={styles.resumeSectionTitle}>Projects</Text>
-                    {finalResume.projects.map((proj, idx) => {
-                      // Extract top 2 links based on priority
-                      const topLinks = [
-                        proj.demoLink && { url: proj.demoLink, label: 'Live Demo' },
-                        proj.docLink && { url: proj.docLink, label: 'Docs' },
-                        proj.videoLink && { url: proj.videoLink, label: 'Video' },
-                        proj.gitLink && { url: proj.gitLink, label: 'GitHub' }
-                      ].filter(Boolean).slice(0, 2);
-                      
-                      return (
-                        <View key={idx} style={styles.resumeItemBlock}>
-                          <View style={styles.resumeItemHeader}>
-                            <View style={{ flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', flex: 1 }}>
-                              {proj.nameLink ? (
-                                <TouchableOpacity onPress={() => Linking.openURL(proj.nameLink)}>
-                                  <Text style={[styles.resumeItemTitle, styles.linkableText]}>{proj.name}</Text>
-                                </TouchableOpacity>
-                              ) : (
-                                <Text style={styles.resumeItemTitle}>{proj.name}</Text>
-                              )}
-                              {topLinks.map((link, i) => (
-                                <TouchableOpacity key={i} onPress={() => Linking.openURL(link.url)}>
-                                  <Text style={[styles.projectLinkItem, { marginLeft: 8, fontSize: 11 }]}>[{link.label}]</Text>
-                                </TouchableOpacity>
-                              ))}
+                    ) : null,
+                    education: finalResume.education && finalResume.education.length > 0 ? (
+                      <View key="education">
+                        <Text style={styles.resumeSectionTitle}>Education</Text>
+                        {finalResume.education.map((ed, idx) => (
+                          <View key={idx} style={styles.resumeItemBlock}>
+                            <View style={styles.resumeItemHeader}>
+                              {ed.institutionLink ? <TouchableOpacity onPress={() => Linking.openURL(ed.institutionLink)}><Text style={[styles.resumeItemTitle, styles.linkableText]}>{ed.institution}</Text></TouchableOpacity> : <Text style={styles.resumeItemTitle}>{ed.institution}</Text>}
+                              {ed.durationLink ? <TouchableOpacity onPress={() => Linking.openURL(ed.durationLink)}><Text style={[styles.resumeItemDate, styles.linkableText]}>{ed.duration}</Text></TouchableOpacity> : <Text style={styles.resumeItemDate}>{ed.duration}</Text>}
                             </View>
-                          
-                          {proj.roleLink ? (
-                            <TouchableOpacity onPress={() => Linking.openURL(proj.roleLink)}>
-                              <Text style={[styles.resumeItemDate, styles.linkableText]}>{proj.role}</Text>
-                            </TouchableOpacity>
-                          ) : (
-                            <Text style={styles.resumeItemDate}>{proj.role}</Text>
-                          )}
-                        </View>
-                        
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 4 }}>
-                          {proj.typeLink ? (
-                            <TouchableOpacity onPress={() => Linking.openURL(proj.typeLink)}>
-                              <Text style={[styles.resumeItemSubtitle, styles.linkableText]}>{proj.type}</Text>
-                            </TouchableOpacity>
-                          ) : (
-                            <Text style={styles.resumeItemSubtitle}>{proj.type}</Text>
-                          )}
-                          <Text style={styles.resumeItemSubtitle}> | </Text>
-                          {proj.techStackLink ? (
-                            <TouchableOpacity onPress={() => Linking.openURL(proj.techStackLink)}>
-                              <Text style={[styles.resumeItemSubtitle, styles.linkableText]}>{proj.techStack}</Text>
-                            </TouchableOpacity>
-                          ) : (
-                            <Text style={styles.resumeItemSubtitle}>{proj.techStack}</Text>
-                          )}
-                        </View>
-
-                        {proj.summaryLink ? (
-                          <TouchableOpacity onPress={() => Linking.openURL(proj.summaryLink)}>
-                            <Text style={[styles.resumeText, styles.linkableText]}>{proj.summary}</Text>
+                            {ed.courseLink ? <TouchableOpacity onPress={() => Linking.openURL(ed.courseLink)}><Text style={[styles.resumeItemSubtitle, styles.linkableText]}>{ed.course}</Text></TouchableOpacity> : <Text style={styles.resumeItemSubtitle}>{ed.course}</Text>}
+                            {ed.score ? (ed.scoreLink ? <TouchableOpacity onPress={() => Linking.openURL(ed.scoreLink)}><Text style={[styles.resumeText, styles.linkableText]}>{getScoreLabel(ed.score)}: {ed.score}</Text></TouchableOpacity> : <Text style={styles.resumeText}>{getScoreLabel(ed.score)}: {ed.score}</Text>) : null}
+                          </View>
+                        ))}
+                      </View>
+                    ) : null,
+                    experience: finalResume.experience && finalResume.experience.length > 0 ? (
+                      <View key="experience">
+                        <Text style={styles.resumeSectionTitle}>Work Experience</Text>
+                        {finalResume.experience.map((exp, idx) => (
+                          <View key={idx} style={styles.resumeItemBlock}>
+                            <View style={styles.resumeItemHeader}>
+                              {exp.companyLink ? <TouchableOpacity onPress={() => Linking.openURL(exp.companyLink)}><Text style={[styles.resumeItemTitle, styles.linkableText]}>{exp.company}</Text></TouchableOpacity> : <Text style={styles.resumeItemTitle}>{exp.company}</Text>}
+                              {exp.durationLink ? <TouchableOpacity onPress={() => Linking.openURL(exp.durationLink)}><Text style={[styles.resumeItemDate, styles.linkableText]}>{exp.duration}</Text></TouchableOpacity> : <Text style={styles.resumeItemDate}>{exp.duration}</Text>}
+                            </View>
+                            {exp.roleLink ? <TouchableOpacity onPress={() => Linking.openURL(exp.roleLink)}><Text style={[styles.resumeItemSubtitle, styles.linkableText]}>{exp.role}</Text></TouchableOpacity> : <Text style={styles.resumeItemSubtitle}>{exp.role}</Text>}
+                            {renderNativeContent(exp.summary, exp.summaryLink, theme.experienceBullets ?? false)}
+                          </View>
+                        ))}
+                      </View>
+                    ) : null,
+                    skills: finalResume.skills ? (
+                      <View key="skills">
+                        <Text style={styles.resumeSectionTitle}>Skills</Text>
+                        {finalResume.skillsLink ? (
+                          <TouchableOpacity onPress={() => Linking.openURL(finalResume.skillsLink)}>
+                            {typeof finalResume.skills === 'string' ? finalResume.skills.split('\n').map((line, idx) => {
+                              const colonIdx = line.indexOf(':');
+                              if (colonIdx !== -1) {
+                                return <Text key={idx} style={[styles.resumeText, styles.linkableText]}><Text style={{ fontWeight: 'bold' }}>{line.substring(0, colonIdx + 1)}</Text>{line.substring(colonIdx + 1)}</Text>;
+                              }
+                              return <Text key={idx} style={[styles.resumeText, styles.linkableText]}>{line}</Text>;
+                            }) : <Text style={[styles.resumeText, styles.linkableText]}>{finalResume.skills}</Text>}
                           </TouchableOpacity>
                         ) : (
-                          <Text style={styles.resumeText}>{proj.summary}</Text>
-                        )}
-                        
-                      </View>
-                    )})}
-                  </>
-                ) : null}
-
-                {/* 9. Achievements */}
-                {finalResume.achievements && finalResume.achievements.length > 0 ? (
-                  <>
-                    <Text style={styles.resumeSectionTitle}>Accomplishments</Text>
-                    {finalResume.achievements.map((ach, idx) => (
-                      <View key={idx} style={styles.resumeItemBlock}>
-                        {ach.link ? (
-                          <TouchableOpacity onPress={() => Linking.openURL(ach.link)}>
-                            <Text style={[styles.resumeText, styles.linkableText]}>• {ach.text}</Text>
-                          </TouchableOpacity>
-                        ) : (
-                          <Text style={styles.resumeText}>• {ach.text}</Text>
+                          <View>
+                            {typeof finalResume.skills === 'string' ? finalResume.skills.split('\n').map((line, idx) => {
+                              const colonIdx = line.indexOf(':');
+                              if (colonIdx !== -1) {
+                                return <Text key={idx} style={styles.resumeText}><Text style={{ fontWeight: 'bold' }}>{line.substring(0, colonIdx + 1)}</Text>{line.substring(colonIdx + 1)}</Text>;
+                              }
+                              return <Text key={idx} style={styles.resumeText}>{line}</Text>;
+                            }) : <Text style={styles.resumeText}>{finalResume.skills}</Text>}
+                          </View>
                         )}
                       </View>
-                    ))}
-                  </>
-                ) : null}
+                    ) : null,
+                    projects: finalResume.projects && finalResume.projects.length > 0 ? (
+                      <View key="projects">
+                        <Text style={styles.resumeSectionTitle}>Projects</Text>
+                        {finalResume.projects.map((proj, idx) => {
+                          const topLinks = [proj.demoLink && { url: proj.demoLink, label: 'Live Demo' }, proj.docLink && { url: proj.docLink, label: 'Docs' }, proj.videoLink && { url: proj.videoLink, label: 'Video' }, proj.gitLink && { url: proj.gitLink, label: 'GitHub' }].filter(Boolean).slice(0, 2);
+                          return (
+                            <View key={idx} style={styles.resumeItemBlock}>
+                              <View style={styles.resumeItemHeader}>
+                                <View style={{ flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', flex: 1 }}>
+                                  {proj.nameLink ? <TouchableOpacity onPress={() => Linking.openURL(proj.nameLink)}><Text style={[styles.resumeItemTitle, styles.linkableText]}>{proj.name}</Text></TouchableOpacity> : <Text style={styles.resumeItemTitle}>{proj.name}</Text>}
+                                  {topLinks.map((link, i) => <TouchableOpacity key={i} onPress={() => Linking.openURL(link.url)}><Text style={[styles.projectLinkItem, { marginLeft: 8, fontSize: 11 }]}>[{link.label}]</Text></TouchableOpacity>)}
+                                </View>
+                                {proj.roleLink ? <TouchableOpacity onPress={() => Linking.openURL(proj.roleLink)}><Text style={[styles.resumeItemDate, styles.linkableText]}>{proj.role}</Text></TouchableOpacity> : <Text style={styles.resumeItemDate}>{proj.role}</Text>}
+                              </View>
+                              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 4 }}>
+                                {proj.typeLink ? <TouchableOpacity onPress={() => Linking.openURL(proj.typeLink)}><Text style={[styles.resumeItemSubtitle, styles.linkableText]}>{proj.type}</Text></TouchableOpacity> : <Text style={styles.resumeItemSubtitle}>{proj.type}</Text>}
+                                <Text style={styles.resumeItemSubtitle}> | </Text>
+                                {proj.techStackLink ? <TouchableOpacity onPress={() => Linking.openURL(proj.techStackLink)}><Text style={[styles.resumeItemSubtitle, styles.linkableText]}>{proj.techStack}</Text></TouchableOpacity> : <Text style={styles.resumeItemSubtitle}>{proj.techStack}</Text>}
+                              </View>
+                              {renderNativeContent(proj.summary, proj.summaryLink, theme.projectsBullets ?? true)}
+                            </View>
+                          )
+                        })}
+                      </View>
+                    ) : null,
+                    achievements: finalResume.achievements && finalResume.achievements.length > 0 ? (
+                      <View key="achievements">
+                        <Text style={styles.resumeSectionTitle}>Accomplishments</Text>
+                        {finalResume.achievements.map((ach, idx) => (
+                          <View key={idx} style={styles.resumeItemBlock}>
+                            {ach.link ? <TouchableOpacity onPress={() => Linking.openURL(ach.link)}><Text style={[styles.resumeText, styles.linkableText]}>• {ach.text}</Text></TouchableOpacity> : <Text style={styles.resumeText}>• {ach.text}</Text>}
+                          </View>
+                        ))}
+                      </View>
+                    ) : null
+                  };
+                  return (theme.sectionOrder || ['summary', 'education', 'experience', 'skills', 'projects', 'achievements']).map(sec => nativeSections[sec]);
+                })()}
                 </View>
               )}
             </View>
@@ -861,6 +866,21 @@ export default function BuilderScreen({ user, onGoBack }) {
           </View>
         </View>
       </Modal>
+
+      {/* Generic Popup Modal */}
+      <Modal visible={popupState.visible} transparent={true} animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={[styles.successModalTitle, popupState.isError && { color: '#EF4444' }]}>{popupState.title}</Text>
+            <Text style={styles.modalMessage}>{popupState.message}</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity onPress={() => setPopupState({ ...popupState, visible: false })} style={[styles.modalConfirmBtn, { backgroundColor: popupState.isError ? '#EF4444' : '#10B981' }]}>
+                <Text style={styles.modalConfirmText}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -879,16 +899,6 @@ const styles = StyleSheet.create({
   confirmButton: { backgroundColor: '#10B981', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
   confirmButtonText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
   
-  themeToolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, backgroundColor: '#0F172A', padding: 12, borderRadius: 8, marginBottom: 16, borderWidth: 1, borderColor: '#334155' },
-  themeGroup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  themeLabel: { color: '#94A3B8', fontSize: 12, fontWeight: 'bold' },
-  themePill: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, borderColor: '#334155' },
-  themePillActive: { backgroundColor: '#3B82F6', borderColor: '#3B82F6' },
-  themePillText: { color: '#94A3B8', fontSize: 12 },
-  themePillTextActive: { color: '#fff', fontWeight: 'bold' },
-  colorDot: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: 'transparent' },
-  colorDotActive: { borderColor: '#fff' },
-
   resultContainer: { 
     marginTop: 30, 
     backgroundColor: '#1E293B', 
@@ -899,6 +909,114 @@ const styles = StyleSheet.create({
   },
   successTitle: { fontSize: 18, fontWeight: 'bold', color: '#10B981', marginBottom: 8 },
   resultDesc: { fontSize: 14, color: '#94A3B8', marginBottom: 16 },
+  webPreviewShell: {
+    height: 720,
+    maxHeight: 720,
+    width: '100%',
+    overflow: 'hidden',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+    backgroundColor: '#0F172A'
+  },
+  webPreviewScroller: {
+    height: '100%',
+    maxHeight: '100%',
+    overflow: 'scroll',
+    backgroundColor: '#0F172A'
+  },
+  webPreviewContent: {
+    padding: 12,
+    minHeight: '100%'
+  },
+  webResumePreview: {
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 900,
+    flexShrink: 1
+  },
+  webA4Sheet: {
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 760,
+    minHeight: 1075,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3
+  },
+  webCompactCard: {
+    paddingVertical: 28,
+    paddingHorizontal: 32,
+  },
+  webPreviewName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#000',
+    textAlign: 'center',
+    marginBottom: 6
+  },
+  webPreviewMeta: {
+    fontSize: 13,
+    color: '#475569',
+    textAlign: 'center',
+        marginBottom: 4
+      },
+      webPreviewLinkItem: {
+        fontSize: 13,
+        color: '#2563EB',
+        textDecorationLine: 'underline'
+  },
+  webPreviewSection: {
+    marginBottom: 18
+  },
+  webPreviewHeading: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#000',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000',
+    paddingBottom: 4,
+    marginBottom: 8,
+    textTransform: 'uppercase'
+  },
+  webPreviewItem: {
+    marginBottom: 12
+  },
+      webPreviewItemHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'baseline',
+        marginBottom: 2
+      },
+  webPreviewStrong: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 2
+  },
+  webPreviewMuted: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 4
+  },
+  webPreviewBody: {
+    fontSize: 13,
+    color: '#334155',
+    lineHeight: 19
+  },
+  webPreviewBullet: {
+    fontSize: 13,
+    color: '#334155',
+    lineHeight: 19,
+    marginBottom: 4
+  },
   jsonOutput: {
     fontFamily: 'monospace',
     fontSize: 12,
@@ -932,6 +1050,7 @@ const styles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   modalContent: { backgroundColor: '#1E293B', padding: 24, borderRadius: 16, width: '100%', maxWidth: 400, borderWidth: 1, borderColor: '#334155' },
   modalTitle: { color: '#F8FAFC', fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  successModalTitle: { color: '#10B981', fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
   modalMessage: { color: '#94A3B8', fontSize: 14, marginBottom: 24, lineHeight: 20 },
   modalButtons: { flexDirection: 'row', justifyContent: 'flex-end' },
   modalCancelBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, marginRight: 12 },

@@ -69,43 +69,19 @@ const generateATSResumeHTML = (resume, showPhoto, theme = { font: 'Arial', color
         ${personal?.github ? `<a href="${personal.github}">GitHub</a>` : ''}
         ${personal?.leetcode ? `<a href="${personal.leetcode}">LeetCode</a>` : ''}
       </div>
-      ${summary ? `<h2>Professional Summary</h2><div class="section-content">${formatContent(summary, summaryLink)}</div>` : ''}
-      ${education && education.length > 0 ? `
-        <h2>Education</h2><div class="section-content">
-          ${education.map(ed => `
-            <div class="item-block">
-              <div class="item-header"><span class="item-title">${makeLink(ed.institution, ed.institutionLink)}</span><span class="item-date">${makeLink(ed.duration, ed.durationLink)}</span></div>
-              <div class="item-subtitle">${makeLink(ed.course, ed.courseLink)}</div>
-              ${ed.score ? `<div>Score: ${makeLink(ed.score, ed.scoreLink)}</div>` : ''}
-            </div>`).join('')}
-        </div>` : ''}
-      ${experience && experience.length > 0 ? `
-        <h2>Work Experience</h2><div class="section-content">
-          ${experience.map(exp => `
-            <div class="item-block">
-              <div class="item-header"><span class="item-title">${makeLink(exp.company, exp.companyLink)} | <span style="font-weight:normal">${makeLink(exp.role, exp.roleLink)}</span></span><span class="item-date">${makeLink(exp.duration, exp.durationLink)}</span></div>
-              <div class="item-desc">${formatContent(exp.summary, exp.summaryLink)}</div>
-            </div>`).join('')}
-        </div>` : ''}
-      ${skills ? `<h2>Skills</h2><div class="section-content">${makeLink(skills, skillsLink)}</div>` : ''}
-      ${projects && projects.length > 0 ? `
-        <h2>Projects</h2><div class="section-content">
-          ${projects.map(proj => `
-            <div class="item-block">
-              <div class="item-header"><span class="item-title">${makeLink(proj.name, proj.nameLink)}${[
-                  proj.demoLink && `<a href="${proj.demoLink}" style="font-size:9pt; margin-left:6px; font-weight:normal; color:${theme.color}; text-decoration:none;">[Live Demo]</a>`,
-                  proj.docLink && `<a href="${proj.docLink}" style="font-size:9pt; margin-left:6px; font-weight:normal; color:${theme.color}; text-decoration:none;">[Docs]</a>`,
-                  proj.videoLink && `<a href="${proj.videoLink}" style="font-size:9pt; margin-left:6px; font-weight:normal; color:${theme.color}; text-decoration:none;">[Video]</a>`,
-                  proj.gitLink && `<a href="${proj.gitLink}" style="font-size:9pt; margin-left:6px; font-weight:normal; color:${theme.color}; text-decoration:none;">[GitHub]</a>`
-                ].filter(Boolean).slice(0, 2).join('')} | <span style="font-weight:normal">${makeLink(proj.role, proj.roleLink)}</span></span></div>
-              <div class="item-tech">${makeLink(proj.type, proj.typeLink)} | ${makeLink(proj.techStack, proj.techStackLink)}</div>
-              <div class="item-desc">${formatContent(proj.summary, proj.summaryLink)}</div>
-            </div>`).join('')}
-        </div>` : ''}
-      ${achievements && achievements.length > 0 ? `
-        <h2>Accomplishments</h2><div class="section-content">
-          <ul>${achievements.map(ach => `<li>${makeLink(ach.text, ach.link)}</li>`).join('')}</ul>
-        </div>` : ''}
+      
+      ${(() => {
+        const sectionsHTML = {
+          summary: summary ? `\n        <h2>Professional Summary</h2>\n        <div class="section-content">\n          ${formatContent(summary, summaryLink)}\n        </div>\n      ` : '',
+          education: education && education.length > 0 ? `\n        <h2>Education</h2>\n        <div class="section-content">\n          ${education.map(ed => `\n            <div class="item-block">\n              <div class="item-header">\n                <span class="item-title">${makeLink(ed.institution, ed.institutionLink)}</span>\n                <span class="item-date">${makeLink(ed.duration, ed.durationLink)}</span>\n              </div>\n              <div class="item-subtitle">${makeLink(ed.course, ed.courseLink)}</div>\n              ${ed.score ? `<div>Score: ${makeLink(ed.score, ed.scoreLink)}</div>` : ''}\n            </div>\n          `).join('')}\n        </div>\n      ` : '',
+          experience: experience && experience.length > 0 ? `\n        <h2>Work Experience</h2>\n        <div class="section-content">\n          ${experience.map(exp => `\n            <div class="item-block">\n              <div class="item-header">\n                <span class="item-title">${makeLink(exp.company, exp.companyLink)} | <span style="font-weight:normal">${makeLink(exp.role, exp.roleLink)}</span></span>\n                <span class="item-date">${makeLink(exp.duration, exp.durationLink)}</span>\n              </div>\n              <div class="item-desc">${formatContent(exp.summary, exp.summaryLink, theme.experienceBullets ?? false)}</div>\n            </div>\n          `).join('')}\n        </div>\n      ` : '',
+          skills: skills ? `\n        <h2>Skills</h2>\n        <div class="section-content">\n          ${makeLink(typeof skills === 'string' ? skills.replace(/\n/g, '<br>') : skills, skillsLink)}\n        </div>\n      ` : '',
+          projects: projects && projects.length > 0 ? `\n        <h2>Projects</h2>\n        <div class="section-content">\n          ${projects.map(proj => `\n            <div class="item-block">\n              <div class="item-header">\n                <span class="item-title">${makeLink(proj.name, proj.nameLink)}${[proj.demoLink && `<a href="${proj.demoLink}" style="font-size:9pt; margin-left:6px; font-weight:normal; color:${theme.color}; text-decoration:none;">[Live Demo]</a>`, proj.docLink && `<a href="${proj.docLink}" style="font-size:9pt; margin-left:6px; font-weight:normal; color:${theme.color}; text-decoration:none;">[Docs]</a>`, proj.videoLink && `<a href="${proj.videoLink}" style="font-size:9pt; margin-left:6px; font-weight:normal; color:${theme.color}; text-decoration:none;">[Video]</a>`, proj.gitLink && `<a href="${proj.gitLink}" style="font-size:9pt; margin-left:6px; font-weight:normal; color:${theme.color}; text-decoration:none;">[GitHub]</a>`].filter(Boolean).slice(0, 2).join('')} | <span style="font-weight:normal">${makeLink(proj.role, proj.roleLink)}</span></span>\n              </div>\n              <div class="item-tech">${makeLink(proj.type, proj.typeLink)} | ${makeLink(proj.techStack, proj.techStackLink)}</div>\n              <div class="item-desc">${formatContent(proj.summary, proj.summaryLink, theme.projectsBullets ?? true)}</div>\n            </div>\n          `).join('')}\n        </div>\n      ` : '',
+          achievements: achievements && achievements.length > 0 ? `\n        <h2>Accomplishments</h2>\n        <div class="section-content">\n          <ul>\n            ${achievements.map(ach => `<li>${makeLink(ach.text, ach.link)}</li>`).join('')}\n          </ul>\n        </div>\n      ` : ''
+        };
+        
+        return (theme.sectionOrder || ['summary', 'education', 'experience', 'skills', 'projects', 'achievements']).map(sec => sectionsHTML[sec]).join('');
+      })()}
       </div>
     </body>
     </html>
