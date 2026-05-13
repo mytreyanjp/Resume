@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Image, Alert, Platform } from 'react-native'
+import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Image, Platform, Modal } from 'react-native'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 import { db } from '../firebaseConfig'
 import { Feather } from '@expo/vector-icons'
@@ -7,6 +7,7 @@ import { Feather } from '@expo/vector-icons'
 export default function FormScreen({ user, onGoToBuilder }) {
   const [loading, setLoading] = useState(false)
   const [saveStatus, setSaveStatus] = useState(null)
+  const [popupState, setPopupState] = useState({ visible: false, title: '', message: '', isError: false, onConfirm: null, showCancel: false })
 
   // Form States
   const [personal, setPersonal] = useState({
@@ -103,7 +104,7 @@ export default function FormScreen({ user, onGoToBuilder }) {
     setSaveStatus(null)
     try {
       // Save to Firestore under the 'resumes' collection using the user's UID
-      await setDoc(doc(db, 'resumes', user.uid), {
+      await setDoc(doc(db, 'resumes', user.uid), JSON.parse(JSON.stringify({
         userId: user.uid,
         personal,
         skills,
@@ -115,25 +116,32 @@ export default function FormScreen({ user, onGoToBuilder }) {
         projects,
         achievements,
         updatedAt: new Date().toISOString()
-      }, { merge: true }) // Using merge ensures we don't wipe out other fields unintentionally
+      })), { merge: true }) // Using merge ensures we don't wipe out other fields unintentionally
       
       setSaveStatus('success')
-      if (Platform.OS === 'web') {
-        if (window.confirm('Resume details saved successfully! Click OK to Tailor Resume, or Cancel to stay here.')) {
-          onGoToBuilder()
+      setPopupState({
+        visible: true,
+        title: 'Success',
+        message: 'Resume details saved successfully!',
+        isError: false,
+        showCancel: true,
+        onConfirm: () => {
+          setPopupState(prev => ({ ...prev, visible: false }));
+          onGoToBuilder();
         }
-      } else {
-        Alert.alert('Success', 'Resume details saved successfully!', [
-          { text: 'Stay Here', style: 'cancel' },
-          { text: 'Tailor Resume', onPress: onGoToBuilder }
-        ])
-      }
+      });
       setTimeout(() => setSaveStatus(null), 3000)
     } catch (error) {
       console.error('Error saving resume:', error)
       setSaveStatus('error')
-      if (Platform.OS === 'web') window.alert('Failed to save details. Please check your Firebase rules.')
-      else Alert.alert('Error', 'Failed to save details. Please check your Firebase rules.')
+      setPopupState({
+        visible: true,
+        title: 'Error',
+        message: 'Failed to save details. Please check your Firebase rules.',
+        isError: true,
+        showCancel: false,
+        onConfirm: () => setPopupState(prev => ({ ...prev, visible: false }))
+      });
     } finally {
       setLoading(false)
     }
@@ -146,12 +154,12 @@ export default function FormScreen({ user, onGoToBuilder }) {
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Personal Details</Text>
         <LinkableInput placeholder="Full Name" value={personal.name} onChangeText={t => setPersonal({ ...personal, name: t })} linkValue={personal.nameLink || ''} onLinkChangeText={t => setPersonal({ ...personal, nameLink: t })} />
-        <TextInput style={styles.input} placeholder="Email ID" value={personal.email} onChangeText={t => setPersonal({ ...personal, email: t })} keyboardType="email-address" />
+        <TextInput style={styles.input} placeholderTextColor="rgba(255, 255, 255, 0.5)" placeholder="Email ID" value={personal.email} onChangeText={t => setPersonal({ ...personal, email: t })} keyboardType="email-address" />
         <LinkableInput placeholder="Phone Number" value={personal.phone} onChangeText={t => setPersonal({ ...personal, phone: t })} keyboardType="phone-pad" linkValue={personal.phoneLink || ''} onLinkChangeText={t => setPersonal({ ...personal, phoneLink: t })} />
-        <TextInput style={styles.input} placeholder="LinkedIn URL" value={personal.linkedin} onChangeText={t => setPersonal({ ...personal, linkedin: t })} />
-        <TextInput style={styles.input} placeholder="GitHub URL" value={personal.github} onChangeText={t => setPersonal({ ...personal, github: t })} />
-        <TextInput style={styles.input} placeholder="LeetCode URL" value={personal.leetcode} onChangeText={t => setPersonal({ ...personal, leetcode: t })} />
-        <TextInput style={styles.input} placeholder="Portfolio URL" value={personal.portfolio} onChangeText={t => setPersonal({ ...personal, portfolio: t })} />
+        <TextInput style={styles.input} placeholderTextColor="rgba(255, 255, 255, 0.5)" placeholder="LinkedIn URL" value={personal.linkedin} onChangeText={t => setPersonal({ ...personal, linkedin: t })} />
+        <TextInput style={styles.input} placeholderTextColor="rgba(255, 255, 255, 0.5)" placeholder="GitHub URL" value={personal.github} onChangeText={t => setPersonal({ ...personal, github: t })} />
+        <TextInput style={styles.input} placeholderTextColor="rgba(255, 255, 255, 0.5)" placeholder="LeetCode URL" value={personal.leetcode} onChangeText={t => setPersonal({ ...personal, leetcode: t })} />
+        <TextInput style={styles.input} placeholderTextColor="rgba(255, 255, 255, 0.5)" placeholder="Portfolio URL" value={personal.portfolio} onChangeText={t => setPersonal({ ...personal, portfolio: t })} />
       </View>
 
       {/* Skills */}
@@ -225,10 +233,10 @@ export default function FormScreen({ user, onGoToBuilder }) {
             <LinkableInput placeholder="Project Type (e.g. Academic, Personal, Freelance)" value={proj.type} onChangeText={t => updateProject(index, 'type', t)} linkValue={proj.typeLink || ''} onLinkChangeText={t => updateProject(index, 'typeLink', t)} />
             <LinkableInput placeholder="Your Role (e.g. Frontend Developer)" value={proj.role} onChangeText={t => updateProject(index, 'role', t)} linkValue={proj.roleLink || ''} onLinkChangeText={t => updateProject(index, 'roleLink', t)} />
             <LinkableInput placeholder="Tech Stack (e.g. React Native, Firebase)" value={proj.techStack} onChangeText={t => updateProject(index, 'techStack', t)} linkValue={proj.techStackLink || ''} onLinkChangeText={t => updateProject(index, 'techStackLink', t)} />
-            <TextInput style={styles.input} placeholder="GitHub/Git Link (Optional)" value={proj.gitLink} onChangeText={t => updateProject(index, 'gitLink', t)} />
-            <TextInput style={styles.input} placeholder="Documentation Link (Optional)" value={proj.docLink} onChangeText={t => updateProject(index, 'docLink', t)} />
-            <TextInput style={styles.input} placeholder="Video Link (Optional)" value={proj.videoLink} onChangeText={t => updateProject(index, 'videoLink', t)} />
-            <TextInput style={styles.input} placeholder="Live Demo Link (Optional)" value={proj.demoLink} onChangeText={t => updateProject(index, 'demoLink', t)} />
+            <TextInput style={styles.input} placeholderTextColor="rgba(255, 255, 255, 0.5)" placeholder="GitHub/Git Link (Optional)" value={proj.gitLink} onChangeText={t => updateProject(index, 'gitLink', t)} />
+            <TextInput style={styles.input} placeholderTextColor="rgba(255, 255, 255, 0.5)" placeholder="Documentation Link (Optional)" value={proj.docLink} onChangeText={t => updateProject(index, 'docLink', t)} />
+            <TextInput style={styles.input} placeholderTextColor="rgba(255, 255, 255, 0.5)" placeholder="Video Link (Optional)" value={proj.videoLink} onChangeText={t => updateProject(index, 'videoLink', t)} />
+            <TextInput style={styles.input} placeholderTextColor="rgba(255, 255, 255, 0.5)" placeholder="Live Demo Link (Optional)" value={proj.demoLink} onChangeText={t => updateProject(index, 'demoLink', t)} />
             <LinkableInput placeholder="2-point summary of the project..." value={proj.summary} onChangeText={t => updateProject(index, 'summary', t)} linkValue={proj.summaryLink || ''} onLinkChangeText={t => updateProject(index, 'summaryLink', t)} multiline />
           </View>
         ))}
@@ -260,6 +268,26 @@ export default function FormScreen({ user, onGoToBuilder }) {
       <TouchableOpacity style={[styles.saveButton, saveStatus === 'success' && { backgroundColor: '#10B981' }, saveStatus === 'error' && { backgroundColor: '#EF4444' }]} onPress={handleSave} disabled={loading}>
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>{saveStatus === 'success' ? 'Saved Successfully' : saveStatus === 'error' ? 'Failed to Save' : 'Save Resume Details'}</Text>}
       </TouchableOpacity>
+
+      {/* Generic Popup Modal */}
+      <Modal visible={popupState.visible} transparent={true} animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={[styles.successModalTitle, popupState.isError && { color: '#EF4444' }]}>{popupState.title}</Text>
+            <Text style={styles.modalMessage}>{popupState.message}</Text>
+            <View style={styles.modalButtons}>
+              {popupState.showCancel && (
+                <TouchableOpacity onPress={() => setPopupState({ ...popupState, visible: false })} style={styles.modalCancelBtn}>
+                  <Text style={styles.modalCancelText}>Stay Here</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity onPress={popupState.onConfirm} style={[styles.modalConfirmBtn, { backgroundColor: popupState.isError ? '#EF4444' : '#10B981' }]}>
+                <Text style={styles.modalConfirmText}>{popupState.showCancel ? 'Tailor Resume' : 'OK'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   )
 }
@@ -341,7 +369,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold'
-  }
+  },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContent: { backgroundColor: '#1E293B', padding: 24, borderRadius: 16, width: '100%', maxWidth: 400, borderWidth: 1, borderColor: '#334155' },
+  successModalTitle: { color: '#10B981', fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  modalMessage: { color: '#94A3B8', fontSize: 14, marginBottom: 24, lineHeight: 20 },
+  modalButtons: { flexDirection: 'row', justifyContent: 'flex-end' },
+  modalCancelBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, marginRight: 12 },
+  modalCancelText: { color: '#94A3B8', fontWeight: '600' },
+  modalConfirmBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
+  modalConfirmText: { color: '#fff', fontWeight: 'bold' }
 })
 
 // Custom component to add a "🔗" toggle button onto generic text inputs
@@ -359,7 +396,7 @@ const LinkableInput = ({ placeholder, value, onChangeText, linkValue, onLinkChan
         <TextInput
           style={[{ flex: 1, padding: 14, color: '#F8FAFC', fontSize: 15, textAlignVertical: multiline ? 'top' : 'center' }, multiline && styles.textArea]}
           placeholder={placeholder}
-          placeholderTextColor="#64748B"
+          placeholderTextColor="rgba(255, 255, 255, 0.5)"
           value={value}
           onChangeText={onChangeText}
           multiline={multiline}
@@ -373,7 +410,7 @@ const LinkableInput = ({ placeholder, value, onChangeText, linkValue, onLinkChan
         <TextInput
           style={[styles.input, { marginTop: 8, borderColor: '#3B82F6', marginBottom: 0 }]}
           placeholder={`${placeholder} Link (URL)`}
-          placeholderTextColor="#64748B"
+          placeholderTextColor="rgba(255, 255, 255, 0.5)"
           value={linkValue}
           onChangeText={onLinkChangeText}
           keyboardType="url"

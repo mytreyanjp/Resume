@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Image, Platform, Modal } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Image, Platform, Modal } from 'react-native'
 import * as WebBrowser from 'expo-web-browser'
 import * as Google from 'expo-auth-session/providers/google'
 import { GoogleAuthProvider, signInWithCredential, onAuthStateChanged, signOut } from 'firebase/auth'
@@ -15,6 +15,7 @@ export default function AuthScreen() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(false)
   const [logoutModalVisible, setLogoutModalVisible] = useState(false)
+  const [popupState, setPopupState] = useState({ visible: false, title: '', message: '', isError: false })
   const [currentScreen, setCurrentScreen] = useState('builder')
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     clientId: '321259633436-lu9vmi558o9q3v28e0pui1mnrl2fog5b.apps.googleusercontent.com', // Generic fallback
@@ -62,7 +63,7 @@ export default function AuthScreen() {
           })
           .catch(error => {
             console.error('Firebase sign-in error', error)
-            alert('Firebase sign-in failed: ' + error.message) // Uses native browser alert
+            setPopupState({ visible: true, title: 'Sign-In Error', message: 'Firebase sign-in failed: ' + error.message, isError: true })
             setLoading(false)
           })
       } else {
@@ -77,7 +78,7 @@ export default function AuthScreen() {
       await promptAsync()
     } catch (error) {
       console.error('Google prompt error', error)
-      Alert.alert('Google sign-in error', error.message)
+      setPopupState({ visible: true, title: 'Google Sign-In Error', message: error.message, isError: true })
       setLoading(false)
     }
   }
@@ -89,7 +90,7 @@ export default function AuthScreen() {
       await signOut(auth)
     } catch (error) {
       console.error('Sign-out failed', error)
-      Alert.alert('Sign-out failed', error.message)
+      setPopupState({ visible: true, title: 'Sign-Out Error', message: error.message, isError: true })
       setLoading(false)
     }
   }
@@ -151,6 +152,21 @@ export default function AuthScreen() {
             </View>
           </View>
         </Modal>
+
+        {/* Generic Popup Modal */}
+        <Modal visible={popupState.visible} transparent={true} animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={[styles.modalTitle, popupState.isError && { color: '#EF4444' }]}>{popupState.title}</Text>
+              <Text style={styles.modalMessage}>{popupState.message}</Text>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity onPress={() => setPopupState({ ...popupState, visible: false })} style={[styles.modalConfirmBtn, { backgroundColor: popupState.isError ? '#EF4444' : '#10B981' }]}>
+                  <Text style={styles.modalConfirmText}>OK</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     )
   }
@@ -171,6 +187,21 @@ export default function AuthScreen() {
       <Text style={styles.helpText}>
         Configure `src/firebaseConfig.js` and replace the Google client IDs in `src/screens/AuthScreen.js`.
       </Text>
+
+      {/* Generic Popup Modal */}
+      <Modal visible={popupState.visible} transparent={true} animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={[styles.modalTitle, popupState.isError && { color: '#EF4444' }]}>{popupState.title}</Text>
+            <Text style={styles.modalMessage}>{popupState.message}</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity onPress={() => setPopupState({ ...popupState, visible: false })} style={[styles.modalConfirmBtn, { backgroundColor: popupState.isError ? '#EF4444' : '#10B981' }]}>
+                <Text style={styles.modalConfirmText}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
