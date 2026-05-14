@@ -3,6 +3,7 @@ import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, Activi
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 import { db } from '../firebaseConfig'
 import { Feather } from '@expo/vector-icons'
+import * as ImagePicker from 'expo-image-picker'
 
 export default function FormScreen({ user, onGoToBuilder }) {
   const [loading, setLoading] = useState(false)
@@ -99,6 +100,19 @@ export default function FormScreen({ user, onGoToBuilder }) {
   const addAchievement = () => setAchievements([...achievements, { text: '', link: '' }])
   const removeAchievement = (index) => setAchievements(achievements.filter((_, i) => i !== index))
 
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+
+    if (!result.canceled) {
+      setPersonal({ ...personal, photoURL: result.assets[0].uri });
+    }
+  };
+
   const handleSave = async () => {
     setLoading(true)
     setSaveStatus(null)
@@ -153,6 +167,18 @@ export default function FormScreen({ user, onGoToBuilder }) {
       {/* Personal Info */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Personal Details</Text>
+        <View style={{ alignItems: 'center', marginBottom: 16 }}>
+          <TouchableOpacity onPress={pickImage} style={styles.photoUploadBtn}>
+            {personal.photoURL ? (
+              <Image source={{ uri: personal.photoURL }} style={styles.uploadedPhoto} />
+            ) : (
+              <View style={{ alignItems: 'center' }}>
+                <Feather name="camera" size={24} color="#94A3B8" />
+                <Text style={styles.photoPlaceholderText}>Add Photo</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
         <LinkableInput placeholder="Full Name" value={personal.name} onChangeText={t => setPersonal({ ...personal, name: t })} linkValue={personal.nameLink || ''} onLinkChangeText={t => setPersonal({ ...personal, nameLink: t })} />
         <TextInput style={styles.input} placeholderTextColor="rgba(255, 255, 255, 0.5)" placeholder="Email ID" value={personal.email} onChangeText={t => setPersonal({ ...personal, email: t })} keyboardType="email-address" />
         <LinkableInput placeholder="Phone Number" value={personal.phone} onChangeText={t => setPersonal({ ...personal, phone: t })} keyboardType="phone-pad" linkValue={personal.phoneLink || ''} onLinkChangeText={t => setPersonal({ ...personal, phoneLink: t })} />

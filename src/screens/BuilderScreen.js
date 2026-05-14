@@ -7,39 +7,7 @@ import * as Print from 'expo-print'
 import * as Sharing from 'expo-sharing'
 import * as FileSystem from 'expo-file-system'
 
-// Import html2pdf for proper hyperlink support in PDFs
-let html2pdf;
-let pdfjsLib;
-
-const loadLibraries = async () => {
-  if (typeof window !== 'undefined') {
-    try {
-      // Try dynamic import first
-      const html2pdfModule = await import('html2pdf.js');
-      html2pdf = html2pdfModule.default || html2pdfModule;
-      console.log('html2pdf loaded via dynamic import');
-
-      const pdfjsModule = await import('pdfjs-dist');
-      pdfjsLib = pdfjsModule;
-      if (pdfjsLib.GlobalWorkerOptions) {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-      }
-      console.log('pdfjs-dist loaded via dynamic import');
-    } catch (e) {
-      console.error('Dynamic import failed, trying require:', e);
-      try {
-        html2pdf = require('html2pdf.js');
-        pdfjsLib = require('pdfjs-dist');
-        if (pdfjsLib.GlobalWorkerOptions) {
-          pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-        }
-        console.log('Libraries loaded via require');
-      } catch (e2) {
-        console.error('Both import methods failed:', e2);
-      }
-    }
-  }
-};
+import { loadLibraries, getHtml2Pdf, getPdfjsLib, getPdfLib } from '../pdfHelpers';
 
 // --- ATS-OPTIMIZED HTML GENERATOR ---
 const ensureAbsoluteUrl = (url) => {
@@ -51,6 +19,8 @@ const generateATSResumeHTML = (resume, showPhoto, theme) => {
   const { personal, summary, summaryLink, education, experience, skills, skillsLink, projects, achievements } = resume;
   const fontScale = theme?.fontSizeScale || 1;
   const lhScale = theme?.lineSpacingScale || 1;
+
+  const alignStyle = showPhoto && personal?.photoURL ? 'left' : 'center';
 
   const makeLink = (text, url) => url ? `<a href="${ensureAbsoluteUrl(url)}" target="_blank">${text}</a>` : text;
   const getScoreLabel = (score) => String(score).includes('.') ? 'CGPA' : 'Percentage'
@@ -87,15 +57,12 @@ const generateATSResumeHTML = (resume, showPhoto, theme) => {
         /* ATS-Friendly Typography & Structure */
         * { box-sizing: border-box; }
         a { color: #2563EB; text-decoration: underline; }
-        h1 { font-size: ${18 * fontScale}pt; font-weight: bold; text-align: center; margin: 0 0 4px 0; text-transform: uppercase; color: #000000; line-height: ${1.05 * lhScale}; }
+        h1 { font-size: ${18 * fontScale}pt; font-weight: bold; text-align: ${alignStyle}; margin: 0 0 4px 0; text-transform: uppercase; color: #000000; line-height: ${1.05 * lhScale}; }
         h2 { font-size: ${10.5 * fontScale}pt; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000000; margin: 5px 0 3px 0; padding-bottom: 1px; color: #000000; line-height: ${1.1 * lhScale}; break-after: avoid; }
         
-        .contact-info { text-align: center; font-size: ${8.5 * fontScale}pt; margin-bottom: 3px; }
-        .links-bar { text-align: center; font-size: ${8.5 * fontScale}pt; margin-bottom: 8px; }
+        .contact-info { text-align: ${alignStyle}; font-size: ${8.5 * fontScale}pt; margin-bottom: 3px; }
+        .links-bar { text-align: ${alignStyle}; font-size: ${8.5 * fontScale}pt; margin-bottom: 8px; }
         .links-bar a { margin: 0 4px; }
-        
-        .photo-container { text-align: center; margin-bottom: 8px; }
-        .photo-container img { width: 58px; height: 58px; border-radius: 29px; object-fit: cover; }
         
         .section-content { text-align: left; }
         .item-block { margin-bottom: 4px; break-inside: avoid; }
@@ -116,30 +83,34 @@ const generateATSResumeHTML = (resume, showPhoto, theme) => {
     <body>
       <div class="a4-container">
 
-      <!-- 1. Name -->
-      <h1>${makeLink(personal?.name || 'Your Name', personal?.nameLink)}</h1>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
+        <tr>
+          <td style="vertical-align: top; text-align: ${alignStyle}; padding: 0;">
+            <!-- 1. Name -->
+            <h1>${makeLink(personal?.name || 'Your Name', personal?.nameLink)}</h1>
 
-      <!-- 2. Photo (Note: ATS parsers often ignore or fail on photos, toggle lets users decide) -->
-      ${showPhoto && personal?.photoURL ? `
-        <div class="photo-container">
-          <img src="${personal.photoURL}" alt="Profile Photo" />
-        </div>
-      ` : ''}
+            <!-- 3. Contact Details -->
+            <div class="contact-info">
+              ${makeLink(personal?.phone || '', personal?.phoneLink)} 
+              ${personal?.phone && personal?.email ? ' | ' : ''} 
+              ${personal?.email ? `<a href="mailto:${personal.email}">${personal.email}</a>` : ''}
+            </div>
 
-      <!-- 3. Contact Details -->
-      <div class="contact-info">
-        ${makeLink(personal?.phone || '', personal?.phoneLink)} 
-        ${personal?.phone && personal?.email ? ' | ' : ''} 
-        ${personal?.email ? `<a href="mailto:${personal.email}">${personal.email}</a>` : ''}
-      </div>
-
-      <!-- 4. Links -->
-      <div class="links-bar">
-        ${personal?.portfolio ? `<a href="${ensureAbsoluteUrl(personal.portfolio)}">Portfolio</a>` : ''}
-        ${personal?.linkedin ? `<a href="${ensureAbsoluteUrl(personal.linkedin)}">LinkedIn</a>` : ''}
-        ${personal?.github ? `<a href="${ensureAbsoluteUrl(personal.github)}">GitHub</a>` : ''}
-        ${personal?.leetcode ? `<a href="${ensureAbsoluteUrl(personal.leetcode)}">LeetCode</a>` : ''}
-      </div>
+            <!-- 4. Links -->
+            <div class="links-bar">
+              ${personal?.portfolio ? `<a href="${ensureAbsoluteUrl(personal.portfolio)}">Portfolio</a>` : ''}
+              ${personal?.linkedin ? `<a href="${ensureAbsoluteUrl(personal.linkedin)}">LinkedIn</a>` : ''}
+              ${personal?.github ? `<a href="${ensureAbsoluteUrl(personal.github)}">GitHub</a>` : ''}
+              ${personal?.leetcode ? `<a href="${ensureAbsoluteUrl(personal.leetcode)}">LeetCode</a>` : ''}
+            </div>
+          </td>
+          ${showPhoto && personal?.photoURL ? `
+          <td style="width: 80px; vertical-align: top; text-align: right; padding: 0;">
+            <img src="${personal.photoURL}" alt="Profile Photo" style="width: 70px; height: 70px; object-fit: cover;" />
+          </td>
+          ` : ''}
+        </tr>
+      </table>
 
       ${(() => {
         const sectionsHTML = {
@@ -654,10 +625,13 @@ export default function BuilderScreen({ user, onGoBack }) {
       console.log('handleExportPDF called');
 
       // Load libraries if not already loaded
-      if (!html2pdf || !pdfjsLib) {
+      if (!getHtml2Pdf() || !getPdfjsLib()) {
         console.log('Loading libraries...');
         await loadLibraries();
       }
+
+      const html2pdf = getHtml2Pdf();
+      const pdfjsLib = getPdfjsLib();
 
       const htmlContent = generateATSResumeHTML(finalResume, showPhoto, theme);
       console.log('HTML content generated, length:', htmlContent.length);
@@ -715,8 +689,10 @@ export default function BuilderScreen({ user, onGoBack }) {
         backBtn.style.fontWeight = 'bold';
 
         buttonContainer.appendChild(downloadBtn);
-        buttonContainer.appendChild(backBtn);
 
+        topBar.appendChild(backBtn);
+        title.style.flex = '1';
+        title.style.textAlign = 'center';
         topBar.appendChild(title);
         topBar.appendChild(buttonContainer);
 
@@ -798,6 +774,100 @@ export default function BuilderScreen({ user, onGoBack }) {
           // Clear loading text
           previewContainer.innerHTML = '';
 
+          let currentPage = 1;
+          const deletedPages = new Set();
+
+          const updateDeleteBtnState = () => {
+            if (deletedPages.has(currentPage)) {
+              deleteBtn.innerText = '↩️ Restore Current Page';
+              deleteBtn.style.backgroundColor = '#F59E0B'; // Amber
+            } else {
+              deleteBtn.innerText = '🗑️ Delete Current Page';
+              deleteBtn.style.backgroundColor = '#EF4444'; // Red
+            }
+            // Disable if it's the last remaining page to avoid an empty PDF
+            if (!deletedPages.has(currentPage) && deletedPages.size === numPages - 1) {
+              deleteBtn.disabled = true;
+              deleteBtn.style.opacity = '0.5';
+              deleteBtn.title = "Cannot delete the only remaining page";
+            } else {
+              deleteBtn.disabled = false;
+              deleteBtn.style.opacity = '1';
+              deleteBtn.title = "";
+            }
+          };
+
+          const deleteBtn = document.createElement('button');
+          deleteBtn.style.padding = '8px 16px';
+          deleteBtn.style.color = '#fff';
+          deleteBtn.style.border = 'none';
+          deleteBtn.style.borderRadius = '8px';
+          deleteBtn.style.cursor = 'pointer';
+          deleteBtn.style.fontWeight = 'bold';
+          deleteBtn.style.display = numPages > 1 ? 'block' : 'none'; // Only relevant for multi-page
+
+          deleteBtn.onclick = () => {
+            if (deletedPages.has(currentPage)) {
+              deletedPages.delete(currentPage);
+            } else {
+              deletedPages.add(currentPage);
+            }
+            updateDeleteBtnState();
+            
+            // Add visual indication to the canvas
+            const canvas = previewContainer.querySelector('canvas');
+            if (canvas) {
+              if (deletedPages.has(currentPage)) {
+                canvas.style.opacity = '0.4';
+                canvas.style.filter = 'grayscale(100%)';
+              } else {
+                canvas.style.opacity = '1';
+                canvas.style.filter = 'none';
+              }
+            }
+          };
+
+          // Insert delete button before download button
+          buttonContainer.insertBefore(deleteBtn, downloadBtn);
+          updateDeleteBtnState();
+
+          const renderPage = async (pageNum) => {
+            const page = await pdfDoc.getPage(pageNum);
+            const scale = 1.5;
+            const viewport = page.getViewport({ scale });
+
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            canvas.style.maxWidth = '100%';
+            canvas.style.height = 'auto';
+            canvas.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            canvas.style.border = '1px solid #e5e7eb';
+            canvas.style.transition = 'all 0.3s ease';
+
+            if (deletedPages.has(pageNum)) {
+              canvas.style.opacity = '0.4';
+              canvas.style.filter = 'grayscale(100%)';
+            }
+
+            const renderContext = {
+              canvasContext: context,
+              viewport: viewport
+            };
+
+            await page.render(renderContext).promise;
+
+            // Clear previous page
+            const existingCanvas = previewContainer.querySelector('canvas');
+            if (existingCanvas) {
+              previewContainer.removeChild(existingCanvas);
+            }
+
+            previewContainer.appendChild(canvas);
+            updateDeleteBtnState();
+          };
+
           // Create page navigation if multiple pages
           if (numPages > 1) {
             const navContainer = document.createElement('div');
@@ -836,46 +906,13 @@ export default function BuilderScreen({ user, onGoBack }) {
             navContainer.appendChild(nextBtn);
             previewContainer.appendChild(navContainer);
 
-            let currentPage = 1;
-
-            const renderPage = async (pageNum) => {
-              const page = await pdfDoc.getPage(pageNum);
-              const scale = 1.5;
-              const viewport = page.getViewport({ scale });
-
-              const canvas = document.createElement('canvas');
-              const context = canvas.getContext('2d');
-              canvas.height = viewport.height;
-              canvas.width = viewport.width;
-              canvas.style.maxWidth = '100%';
-              canvas.style.height = 'auto';
-              canvas.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-              canvas.style.border = '1px solid #e5e7eb';
-
-              const renderContext = {
-                canvasContext: context,
-                viewport: viewport
-              };
-
-              await page.render(renderContext).promise;
-
-              // Clear previous page
-              const existingCanvas = previewContainer.querySelector('canvas');
-              if (existingCanvas) {
-                previewContainer.removeChild(existingCanvas);
-              }
-
-              previewContainer.appendChild(canvas);
-              pageInfo.innerText = `Page ${pageNum} of ${numPages}`;
-
-              prevBtn.disabled = pageNum === 1;
-              nextBtn.disabled = pageNum === numPages;
-            };
-
             prevBtn.onclick = () => {
               if (currentPage > 1) {
                 currentPage--;
                 renderPage(currentPage);
+                pageInfo.innerText = `Page ${currentPage} of ${numPages}`;
+                prevBtn.disabled = currentPage === 1;
+                nextBtn.disabled = currentPage === numPages;
               }
             };
 
@@ -883,47 +920,75 @@ export default function BuilderScreen({ user, onGoBack }) {
               if (currentPage < numPages) {
                 currentPage++;
                 renderPage(currentPage);
+                pageInfo.innerText = `Page ${currentPage} of ${numPages}`;
+                prevBtn.disabled = currentPage === 1;
+                nextBtn.disabled = currentPage === numPages;
               }
             };
-
-            // Render first page
-            await renderPage(1);
-          } else {
-            // Single page - render directly
-            const page = await pdfDoc.getPage(1);
-            const scale = 1.5;
-            const viewport = page.getViewport({ scale });
-
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
-            canvas.style.maxWidth = '100%';
-            canvas.style.height = 'auto';
-            canvas.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-            canvas.style.border = '1px solid #e5e7eb';
-
-            const renderContext = {
-              canvasContext: context,
-              viewport: viewport
-            };
-
-            await page.render(renderContext).promise;
-            previewContainer.appendChild(canvas);
           }
+
+          // Render first page
+          await renderPage(1);
 
           // Download functionality
           downloadBtn.onclick = async () => {
             try {
+              let finalBlob = pdf;
+
+              if (deletedPages.size > 0) {
+                downloadBtn.innerText = 'Processing...';
+                downloadBtn.disabled = true;
+
+                let PDFDocumentLib;
+                try {
+                  const pdfLibModule = await getPdfLib();
+                  PDFDocumentLib = pdfLibModule.PDFDocument;
+                } catch (e) {
+                  // Fallback to CDN if not natively installed
+                  if (!window.PDFLib) {
+                    await new Promise((resolve, reject) => {
+                      const script = document.createElement('script');
+                      script.src = 'https://unpkg.com/pdf-lib/dist/pdf-lib.min.js';
+                      script.onload = () => resolve();
+                      script.onerror = reject;
+                      document.head.appendChild(script);
+                    });
+                  }
+                  PDFDocumentLib = window.PDFLib.PDFDocument;
+                }
+
+                if (PDFDocumentLib) {
+                  const arrayBuffer = await finalBlob.arrayBuffer();
+                  const pdfDocObj = await PDFDocumentLib.load(arrayBuffer);
+                  
+                  // Remove pages in reverse order to maintain correct indices
+                  const pagesToRemove = Array.from(deletedPages).sort((a, b) => b - a);
+                  for (const pageNum of pagesToRemove) {
+                    pdfDocObj.removePage(pageNum - 1); // 0-indexed
+                  }
+                  
+                  const pdfBytes = await pdfDocObj.save();
+                  finalBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+                } else {
+                  console.warn("Could not load pdf-lib, downloading original PDF.");
+                }
+
+                downloadBtn.innerText = '⬇ Download PDF';
+                downloadBtn.disabled = false;
+              }
+
               const link = document.createElement('a');
-              link.href = pdfUrl;
+              link.href = URL.createObjectURL(finalBlob);
               link.download = `${userName}.pdf`;
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
+              URL.revokeObjectURL(link.href);
             } catch (err) {
               console.error("PDF Download Error:", err);
               alert('Failed to download PDF');
+              downloadBtn.innerText = '⬇ Download PDF';
+              downloadBtn.disabled = false;
             }
           };
 
@@ -971,40 +1036,8 @@ export default function BuilderScreen({ user, onGoBack }) {
           document.body.removeChild(printContainer);
         };
       } else {
-        // On Native (iOS/Android), use html2pdf via WebView
-        const userName = finalResume.personal?.name ? finalResume.personal.name.replace(/\s+/g, '-') : 'Resume';
-        const pdfHtml = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-          </head>
-          <body>
-            <div id="content">${htmlContent}</div>
-            <script>
-              const element = document.getElementById('content');
-              const opt = {
-                margin: 5, // Reduced from 10mm to 5mm to fit on one page
-                filename: '${userName}.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-              };
-              html2pdf().set(opt).from(element).save();
-            </script>
-          </body>
-          </html>
-        `;
-        
-        const fileName = `${userName}.pdf`;
-        const filePath = FileSystem.DocumentDirectoryPath + '/' + fileName;
-        
-        await FileSystem.writeAsStringAsync(filePath, pdfHtml);
-        await Sharing.shareAsync(filePath, { 
-          UTI: '.pdf', 
-          mimeType: 'application/pdf' 
-        });
+        // On Native (iOS/Android), open the native system PDF preview overlay
+        await Print.printAsync({ html: htmlContent });
       }
     } catch (error) {
       console.error("PDF Export Error:", error);
@@ -1066,8 +1099,10 @@ export default function BuilderScreen({ user, onGoBack }) {
     return <Text style={[styles.webPreviewBody, dStyles.webPreviewBody]}>{text}</Text>
   }
 
-  const WebResumeContent = React.memo(({ finalResume, theme }) => {
+  const WebResumeContent = React.memo(({ finalResume, theme, showPhoto }) => {
       const dStyles = getDynamicStyles(theme);
+      const alignStyle = showPhoto && finalResume.personal?.photoURL ? 'left' : 'center';
+      
       const webSections = {
         summary: finalResume.summary ? (
           <View key="summary" style={styles.webPreviewSection}>
@@ -1149,16 +1184,23 @@ export default function BuilderScreen({ user, onGoBack }) {
 
       return (
         <View style={styles.webCompactCard}>
-            <Text style={[styles.webPreviewName, dStyles.webPreviewName]}>{finalResume.personal?.name}</Text>
-            <Text style={[styles.webPreviewMeta, dStyles.webPreviewMeta]}>
-              {[finalResume.personal?.phone, finalResume.personal?.email].filter(Boolean).join(' | ')}
-            </Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
-              {finalResume.personal?.portfolio ? <Text style={[styles.webPreviewLinkItem, dStyles.webPreviewLinkItem]} onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.portfolio))}>Portfolio</Text> : null}
-              {finalResume.personal?.linkedin ? <Text style={[styles.webPreviewLinkItem, dStyles.webPreviewLinkItem]} onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.linkedin))}>LinkedIn</Text> : null}
-              {finalResume.personal?.github ? <Text style={[styles.webPreviewLinkItem, dStyles.webPreviewLinkItem]} onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.github))}>GitHub</Text> : null}
-              {finalResume.personal?.leetcode ? <Text style={[styles.webPreviewLinkItem, dStyles.webPreviewLinkItem]} onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.leetcode))}>LeetCode</Text> : null}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', minHeight: showPhoto && finalResume.personal?.photoURL ? 70 : 0, marginBottom: 16 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.webPreviewName, dStyles.webPreviewName, { textAlign: alignStyle }]}>{finalResume.personal?.name}</Text>
+              <Text style={[styles.webPreviewMeta, dStyles.webPreviewMeta, { textAlign: alignStyle }]}>
+                {[finalResume.personal?.phone, finalResume.personal?.email].filter(Boolean).join(' | ')}
+              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: alignStyle === 'left' ? 'flex-start' : 'center', flexWrap: 'wrap', gap: 12 }}>
+                {finalResume.personal?.portfolio ? <Text style={[styles.webPreviewLinkItem, dStyles.webPreviewLinkItem]} onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.portfolio))}>Portfolio</Text> : null}
+                {finalResume.personal?.linkedin ? <Text style={[styles.webPreviewLinkItem, dStyles.webPreviewLinkItem]} onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.linkedin))}>LinkedIn</Text> : null}
+                {finalResume.personal?.github ? <Text style={[styles.webPreviewLinkItem, dStyles.webPreviewLinkItem]} onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.github))}>GitHub</Text> : null}
+                {finalResume.personal?.leetcode ? <Text style={[styles.webPreviewLinkItem, dStyles.webPreviewLinkItem]} onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.leetcode))}>LeetCode</Text> : null}
+              </View>
             </View>
+            {showPhoto && finalResume.personal?.photoURL && (
+              <Image source={{ uri: finalResume.personal.photoURL }} style={{ width: 70, height: 70, marginLeft: 16 }} />
+            )}
+          </View>
             {(theme.sectionOrder || defaultSectionOrder).map(sec => webSections[sec])}
         </View>
       );
@@ -1167,7 +1209,7 @@ export default function BuilderScreen({ user, onGoBack }) {
   const renderWebResumePreview = () => {
     return (
       <View style={styles.webA4Sheet}>
-        <WebResumeContent finalResume={finalResume} theme={theme} />
+        <WebResumeContent finalResume={finalResume} theme={theme} showPhoto={showPhoto} />
       </View>
     );
   };
@@ -1203,14 +1245,17 @@ export default function BuilderScreen({ user, onGoBack }) {
               <View style={styles.resultHeaderRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.successTitle}>Resume Generated!</Text>
-                  <Text style={styles.resultDesc}>Review your tailored resume below. The layout is compressed to keep full content neatly within A4.</Text>
+                  <Text style={styles.resultDesc}>Review your tailored resume below.</Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <TouchableOpacity style={[styles.confirmButton, { backgroundColor: '#3B82F6', marginRight: 8 }]} onPress={handleExportPDF} disabled={loading}>
+                    <Text style={styles.confirmButtonText}>View PDF</Text>
+                  </TouchableOpacity>
                   <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm} disabled={loading}>
-                    <Text style={styles.confirmButtonText}>Confirm</Text>
+                    <Text style={styles.confirmButtonText}>Save</Text>
                   </TouchableOpacity>
                   <View style={[styles.photoToggleContainer, { marginLeft: 16 }]}>
-                    <Text style={styles.photoToggleLabel}>Show Photo</Text>
+                    <Text style={styles.photoToggleLabel}>Add Photo</Text>
                     <Switch 
                       value={showPhoto} 
                       onValueChange={setShowPhoto} 
@@ -1242,44 +1287,53 @@ export default function BuilderScreen({ user, onGoBack }) {
               ) : (
                 <View style={[styles.resumePreview, Platform.OS === 'web' && styles.webResumePreview]}>
                 
-                {/* 1. Name */}
-                {finalResume.personal?.nameLink ? (
-                  <TouchableOpacity onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.nameLink))}>
-                    <Text style={[styles.resumeName, styles.linkableText, dStyles.resumeName]}>{finalResume.personal?.name}</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <Text style={[styles.resumeName, dStyles.resumeName]}>{finalResume.personal?.name}</Text>
-                )}
+                {(() => {
+                  const alignStyle = showPhoto && finalResume.personal?.photoURL ? 'left' : 'center';
+                  return (
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', minHeight: showPhoto && finalResume.personal?.photoURL ? 70 : 0, marginBottom: 8 }}>
+                      <View style={{ flex: 1 }}>
+                        {/* 1. Name */}
+                        {finalResume.personal?.nameLink ? (
+                          <TouchableOpacity onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.nameLink))}>
+                            <Text style={[styles.resumeName, styles.linkableText, dStyles.resumeName, { textAlign: alignStyle }]}>{finalResume.personal?.name}</Text>
+                          </TouchableOpacity>
+                        ) : (
+                          <Text style={[styles.resumeName, dStyles.resumeName, { textAlign: alignStyle }]}>{finalResume.personal?.name}</Text>
+                        )}
 
-                {/* 2. Photo (Conditional) */}
-                {showPhoto && finalResume.personal?.photoURL && (
-                  <Image source={{ uri: finalResume.personal.photoURL }} style={styles.resumePhoto} />
-                )}
+                        {/* 3. Contact Details */}
+                        <View style={[styles.resumeContacts, { justifyContent: alignStyle === 'left' ? 'flex-start' : 'center' }]}>
+                          {finalResume.personal?.phone ? (
+                            finalResume.personal.phoneLink ? (
+                              <TouchableOpacity onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.phoneLink))}>
+                                <Text style={[styles.resumeContactItem, styles.linkableText, dStyles.resumeContactItem]}>{finalResume.personal.phone}</Text>
+                              </TouchableOpacity>
+                            ) : (
+                              <Text style={[styles.resumeContactItem, dStyles.resumeContactItem]}>{finalResume.personal.phone}</Text>
+                            )
+                          ) : null}
+                          
+                          {finalResume.personal?.phone && finalResume.personal?.email ? <Text style={[styles.resumeContactItem, dStyles.resumeContactItem]}>  |  </Text> : null}
+                          
+                          {finalResume.personal?.email ? <Text style={[styles.resumeContactItem, dStyles.resumeContactItem]}>{finalResume.personal.email}</Text> : null}
+                        </View>
 
-                {/* 3. Contact Details */}
-                <View style={styles.resumeContacts}>
-                  {finalResume.personal?.phone ? (
-                    finalResume.personal.phoneLink ? (
-                      <TouchableOpacity onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.phoneLink))}>
-                        <Text style={[styles.resumeContactItem, styles.linkableText, dStyles.resumeContactItem]}>{finalResume.personal.phone}</Text>
-                      </TouchableOpacity>
-                    ) : (
-                      <Text style={[styles.resumeContactItem, dStyles.resumeContactItem]}>{finalResume.personal.phone}</Text>
-                    )
-                  ) : null}
-                  
-                  {finalResume.personal?.phone && finalResume.personal?.email ? <Text style={[styles.resumeContactItem, dStyles.resumeContactItem]}>  |  </Text> : null}
-                  
-                  {finalResume.personal?.email ? <Text style={[styles.resumeContactItem, dStyles.resumeContactItem]}>{finalResume.personal.email}</Text> : null}
-                </View>
+                        {/* 4. Links */}
+                        <View style={[styles.resumeLinks, { justifyContent: alignStyle === 'left' ? 'flex-start' : 'center', marginBottom: 0 }]}>
+                          {finalResume.personal?.portfolio ? <TouchableOpacity onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.portfolio))}><Text style={[styles.resumeLinkItem, dStyles.resumeLinkItem]}>Portfolio</Text></TouchableOpacity> : null}
+                          {finalResume.personal?.linkedin ? <TouchableOpacity onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.linkedin))}><Text style={[styles.resumeLinkItem, dStyles.resumeLinkItem]}>LinkedIn</Text></TouchableOpacity> : null}
+                          {finalResume.personal?.github ? <TouchableOpacity onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.github))}><Text style={[styles.resumeLinkItem, dStyles.resumeLinkItem]}>GitHub</Text></TouchableOpacity> : null}
+                          {finalResume.personal?.leetcode ? <TouchableOpacity onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.leetcode))}><Text style={[styles.resumeLinkItem, dStyles.resumeLinkItem]}>LeetCode</Text></TouchableOpacity> : null}
+                        </View>
+                      </View>
 
-                {/* 4. Links */}
-                <View style={styles.resumeLinks}>
-                  {finalResume.personal?.portfolio ? <TouchableOpacity onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.portfolio))}><Text style={[styles.resumeLinkItem, dStyles.resumeLinkItem]}>Portfolio</Text></TouchableOpacity> : null}
-                  {finalResume.personal?.linkedin ? <TouchableOpacity onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.linkedin))}><Text style={[styles.resumeLinkItem, dStyles.resumeLinkItem]}>LinkedIn</Text></TouchableOpacity> : null}
-                  {finalResume.personal?.github ? <TouchableOpacity onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.github))}><Text style={[styles.resumeLinkItem, dStyles.resumeLinkItem]}>GitHub</Text></TouchableOpacity> : null}
-                  {finalResume.personal?.leetcode ? <TouchableOpacity onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.leetcode))}><Text style={[styles.resumeLinkItem, dStyles.resumeLinkItem]}>LeetCode</Text></TouchableOpacity> : null}
-                </View>
+                      {/* 2. Photo (Conditional) */}
+                      {showPhoto && finalResume.personal?.photoURL && (
+                        <Image source={{ uri: finalResume.personal.photoURL }} style={{ width: 70, height: 70, marginLeft: 16 }} />
+                      )}
+                    </View>
+                  );
+                })()}
 
                 <View style={styles.resumeDivider} />
 
@@ -1409,10 +1463,6 @@ export default function BuilderScreen({ user, onGoBack }) {
 
             <TouchableOpacity style={styles.clearButton} onPress={() => setClearModalVisible(true)} disabled={loading}>
               <Text style={styles.clearButtonText}>Clear Resume</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.generateButton, { backgroundColor: '#10B981', marginTop: 12 }]} onPress={handleExportPDF} disabled={loading}>
-              <Text style={styles.generateButtonText}>View PDF</Text>
             </TouchableOpacity>
           </>
         )}

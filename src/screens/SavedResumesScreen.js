@@ -6,6 +6,8 @@ import { Feather } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
+import { loadLibraries, getHtml2Pdf, getPdfjsLib, getPdfLib } from '../pdfHelpers';
+
 // --- ATS-OPTIMIZED HTML GENERATOR ---
 const ensureAbsoluteUrl = (url) => {
   if (!url) return '';
@@ -16,6 +18,8 @@ const generateATSResumeHTML = (resume, showPhoto, theme) => {
   const { personal, summary, summaryLink, education, experience, skills, skillsLink, projects, achievements } = resume;
   const fontScale = theme?.fontSizeScale || 1;
   const lhScale = theme?.lineSpacingScale || 1;
+
+  const alignStyle = showPhoto && personal?.photoURL ? 'left' : 'center';
 
   const makeLink = (text, url) => url ? `<a href="${ensureAbsoluteUrl(url)}" target="_blank">${text}</a>` : text;
   const getScoreLabel = (score) => String(score).includes('.') ? 'CGPA' : 'Percentage'
@@ -52,15 +56,12 @@ const generateATSResumeHTML = (resume, showPhoto, theme) => {
         /* ATS-Friendly Typography & Structure */
         * { box-sizing: border-box; }
         a { color: #2563EB; text-decoration: underline; }
-        h1 { font-size: ${18 * fontScale}pt; font-weight: bold; text-align: center; margin: 0 0 4px 0; text-transform: uppercase; color: #000000; line-height: ${1.05 * lhScale}; }
+        h1 { font-size: ${18 * fontScale}pt; font-weight: bold; text-align: ${alignStyle}; margin: 0 0 4px 0; text-transform: uppercase; color: #000000; line-height: ${1.05 * lhScale}; }
         h2 { font-size: ${10.5 * fontScale}pt; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000000; margin: 5px 0 3px 0; padding-bottom: 1px; color: #000000; line-height: ${1.1 * lhScale}; break-after: avoid; }
         
-        .contact-info { text-align: center; font-size: ${8.5 * fontScale}pt; margin-bottom: 3px; }
-        .links-bar { text-align: center; font-size: ${8.5 * fontScale}pt; margin-bottom: 8px; }
+        .contact-info { text-align: ${alignStyle}; font-size: ${8.5 * fontScale}pt; margin-bottom: 3px; }
+        .links-bar { text-align: ${alignStyle}; font-size: ${8.5 * fontScale}pt; margin-bottom: 8px; }
         .links-bar a { margin: 0 4px; }
-        
-        .photo-container { text-align: center; margin-bottom: 8px; }
-        .photo-container img { width: 58px; height: 58px; border-radius: 29px; object-fit: cover; }
         
         .section-content { text-align: left; }
         .item-block { margin-bottom: 4px; break-inside: avoid; }
@@ -81,30 +82,34 @@ const generateATSResumeHTML = (resume, showPhoto, theme) => {
     <body>
       <div class="a4-container">
 
-      <!-- 1. Name -->
-      <h1>${makeLink(personal?.name || 'Your Name', personal?.nameLink)}</h1>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
+        <tr>
+          <td style="vertical-align: top; text-align: ${alignStyle}; padding: 0;">
+            <!-- 1. Name -->
+            <h1>${makeLink(personal?.name || 'Your Name', personal?.nameLink)}</h1>
 
-      <!-- 2. Photo (Note: ATS parsers often ignore or fail on photos, toggle lets users decide) -->
-      ${showPhoto && personal?.photoURL ? `
-        <div class="photo-container">
-          <img src="${personal.photoURL}" alt="Profile Photo" />
-        </div>
-      ` : ''}
+            <!-- 3. Contact Details -->
+            <div class="contact-info">
+              ${makeLink(personal?.phone || '', personal?.phoneLink)} 
+              ${personal?.phone && personal?.email ? ' | ' : ''} 
+              ${personal?.email ? `<a href="mailto:${personal.email}">${personal.email}</a>` : ''}
+            </div>
 
-      <!-- 3. Contact Details -->
-      <div class="contact-info">
-        ${makeLink(personal?.phone || '', personal?.phoneLink)} 
-        ${personal?.phone && personal?.email ? ' | ' : ''} 
-        ${personal?.email ? `<a href="mailto:${personal.email}">${personal.email}</a>` : ''}
-      </div>
-
-      <!-- 4. Links -->
-      <div class="links-bar">
-        ${personal?.portfolio ? `<a href="${ensureAbsoluteUrl(personal.portfolio)}">Portfolio</a>` : ''}
-        ${personal?.linkedin ? `<a href="${ensureAbsoluteUrl(personal.linkedin)}">LinkedIn</a>` : ''}
-        ${personal?.github ? `<a href="${ensureAbsoluteUrl(personal.github)}">GitHub</a>` : ''}
-        ${personal?.leetcode ? `<a href="${ensureAbsoluteUrl(personal.leetcode)}">LeetCode</a>` : ''}
-      </div>
+            <!-- 4. Links -->
+            <div class="links-bar">
+              ${personal?.portfolio ? `<a href="${ensureAbsoluteUrl(personal.portfolio)}">Portfolio</a>` : ''}
+              ${personal?.linkedin ? `<a href="${ensureAbsoluteUrl(personal.linkedin)}">LinkedIn</a>` : ''}
+              ${personal?.github ? `<a href="${ensureAbsoluteUrl(personal.github)}">GitHub</a>` : ''}
+              ${personal?.leetcode ? `<a href="${ensureAbsoluteUrl(personal.leetcode)}">LeetCode</a>` : ''}
+            </div>
+          </td>
+          ${showPhoto && personal?.photoURL ? `
+          <td style="width: 80px; vertical-align: top; text-align: right; padding: 0;">
+            <img src="${personal.photoURL}" alt="Profile Photo" style="width: 70px; height: 70px; object-fit: cover;" />
+          </td>
+          ` : ''}
+        </tr>
+      </table>
       
       ${(() => {
         const sectionsHTML = {
@@ -154,9 +159,10 @@ const renderWebPreviewText = (text, bulletOnMultiple = false, dStyles = {}) => {
   return <Text style={[styles.webPreviewBody, dStyles.webPreviewBody]}>{text}</Text>
 };
 
-const WebResumeContent = React.memo(({ finalResume, theme }) => {
+const WebResumeContent = React.memo(({ finalResume, theme, showPhoto }) => {
   const dStyles = getDynamicStyles(theme);
   const getScoreLabel = (score) => String(score).includes('.') ? 'CGPA' : 'Percentage';
+  const alignStyle = showPhoto && finalResume.personal?.photoURL ? 'left' : 'center';
   const defaultSectionOrder = ['summary', 'education', 'experience', 'skills', 'projects', 'achievements'];
   
   const webSections = {
@@ -170,15 +176,22 @@ const WebResumeContent = React.memo(({ finalResume, theme }) => {
 
   return (
     <View style={styles.webCompactCard}>
-      <Text style={[styles.webPreviewName, dStyles.webPreviewName]}>{finalResume.personal?.name}</Text>
-      <Text style={[styles.webPreviewMeta, dStyles.webPreviewMeta]}>
-      {[finalResume.personal?.phone, finalResume.personal?.email].filter(Boolean).join(' | ')}
-      </Text>
-      <View style={{ flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
-      {finalResume.personal?.portfolio ? <Text style={[styles.webPreviewLinkItem, dStyles.webPreviewLinkItem]} onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.portfolio))}>Portfolio</Text> : null}
-      {finalResume.personal?.linkedin ? <Text style={[styles.webPreviewLinkItem, dStyles.webPreviewLinkItem]} onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.linkedin))}>LinkedIn</Text> : null}
-      {finalResume.personal?.github ? <Text style={[styles.webPreviewLinkItem, dStyles.webPreviewLinkItem]} onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.github))}>GitHub</Text> : null}
-      {finalResume.personal?.leetcode ? <Text style={[styles.webPreviewLinkItem, dStyles.webPreviewLinkItem]} onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.leetcode))}>LeetCode</Text> : null}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', minHeight: showPhoto && finalResume.personal?.photoURL ? 70 : 0, marginBottom: 16 }}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.webPreviewName, dStyles.webPreviewName, { textAlign: alignStyle }]}>{finalResume.personal?.name}</Text>
+          <Text style={[styles.webPreviewMeta, dStyles.webPreviewMeta, { textAlign: alignStyle }]}>
+            {[finalResume.personal?.phone, finalResume.personal?.email].filter(Boolean).join(' | ')}
+          </Text>
+          <View style={{ flexDirection: 'row', justifyContent: alignStyle === 'left' ? 'flex-start' : 'center', flexWrap: 'wrap', gap: 12 }}>
+            {finalResume.personal?.portfolio ? <Text style={[styles.webPreviewLinkItem, dStyles.webPreviewLinkItem]} onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.portfolio))}>Portfolio</Text> : null}
+            {finalResume.personal?.linkedin ? <Text style={[styles.webPreviewLinkItem, dStyles.webPreviewLinkItem]} onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.linkedin))}>LinkedIn</Text> : null}
+            {finalResume.personal?.github ? <Text style={[styles.webPreviewLinkItem, dStyles.webPreviewLinkItem]} onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.github))}>GitHub</Text> : null}
+            {finalResume.personal?.leetcode ? <Text style={[styles.webPreviewLinkItem, dStyles.webPreviewLinkItem]} onPress={() => Linking.openURL(ensureAbsoluteUrl(finalResume.personal.leetcode))}>LeetCode</Text> : null}
+          </View>
+        </View>
+        {showPhoto && finalResume.personal?.photoURL && (
+          <Image source={{ uri: finalResume.personal.photoURL }} style={{ width: 70, height: 70, marginLeft: 16 }} />
+        )}
       </View>
       {(theme?.sectionOrder || defaultSectionOrder).map(sec => webSections[sec])}
     </View>
@@ -227,7 +240,20 @@ export default function SavedResumesScreen({ user }) {
 
   const handleExportPDF = async (resumeData, theme, showPhoto = false) => {
     try {
-      const html = generateATSResumeHTML(resumeData, false, theme);
+      console.log('handleExportPDF called');
+
+      // Load libraries if not already loaded
+      if (!getHtml2Pdf() || !getPdfjsLib()) {
+        console.log('Loading libraries...');
+        await loadLibraries();
+      }
+
+      const html2pdf = getHtml2Pdf();
+      const pdfjsLib = getPdfjsLib();
+
+      const htmlContent = generateATSResumeHTML(resumeData, showPhoto, theme);
+      console.log('HTML content generated, length:', htmlContent.length);
+      
       if (Platform.OS === 'web') {
         const printContainer = document.createElement('div');
         printContainer.id = 'print-overlay-container';
@@ -236,9 +262,10 @@ export default function SavedResumesScreen({ user }) {
         printContainer.style.left = '0';
         printContainer.style.width = '100vw';
         printContainer.style.height = '100vh';
-        printContainer.style.backgroundColor = '#e2e8f0';
+        printContainer.style.backgroundColor = '#1E293B';
         printContainer.style.zIndex = '99999';
-        printContainer.style.overflow = 'auto'; // allow scrolling
+        printContainer.style.display = 'flex';
+        printContainer.style.flexDirection = 'column';
 
         const topBar = document.createElement('div');
         topBar.style.display = 'flex';
@@ -249,6 +276,26 @@ export default function SavedResumesScreen({ user }) {
         topBar.style.color = '#fff';
         topBar.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
         
+        const title = document.createElement('h2');
+        title.innerText = 'PDF Preview';
+        title.style.margin = '0';
+        title.style.fontSize = '18px';
+        title.style.fontWeight = 'bold';
+
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.display = 'flex';
+        buttonContainer.style.gap = '10px';
+
+        const downloadBtn = document.createElement('button');
+        downloadBtn.innerText = '⬇ Download PDF';
+        downloadBtn.style.padding = '10px 20px';
+        downloadBtn.style.backgroundColor = '#10B981';
+        downloadBtn.style.color = '#fff';
+        downloadBtn.style.border = 'none';
+        downloadBtn.style.borderRadius = '8px';
+        downloadBtn.style.cursor = 'pointer';
+        downloadBtn.style.fontWeight = 'bold';
+
         const backBtn = document.createElement('button');
         backBtn.innerText = '← Back';
         backBtn.style.padding = '8px 16px';
@@ -259,45 +306,356 @@ export default function SavedResumesScreen({ user }) {
         backBtn.style.cursor = 'pointer';
         backBtn.style.fontWeight = 'bold';
         
-        const printBtn = document.createElement('button');
-        printBtn.innerText = 'Print / Save PDF';
-        printBtn.style.padding = '10px 20px';
-        printBtn.style.backgroundColor = '#3B82F6';
-        printBtn.style.color = '#fff';
-        printBtn.style.border = 'none';
-        printBtn.style.borderRadius = '8px';
-        printBtn.style.cursor = 'pointer';
-        printBtn.style.fontWeight = 'bold';
-        printBtn.onclick = () => window.print();
+        buttonContainer.appendChild(downloadBtn);
 
         topBar.appendChild(backBtn);
-        topBar.appendChild(printBtn);
-        printContainer.appendChild(topBar);
+        title.style.flex = '1';
+        title.style.textAlign = 'center';
+        topBar.appendChild(title);
+        topBar.appendChild(buttonContainer);
 
-        const resumeWrapper = document.createElement('div');
-        resumeWrapper.innerHTML = html;
-        printContainer.appendChild(resumeWrapper);
+        const previewContainer = document.createElement('div');
+        previewContainer.id = 'pdf-preview-container';
+        previewContainer.style.flex = '1';
+        previewContainer.style.overflow = 'auto';
+        previewContainer.style.padding = '20px';
+        previewContainer.style.backgroundColor = '#f8fafc';
+        previewContainer.style.display = 'flex';
+        previewContainer.style.flexDirection = 'column';
+        previewContainer.style.alignItems = 'center';
+        previewContainer.style.gap = '20px';
+
+        const loadingText = document.createElement('div');
+        loadingText.innerText = 'Generating PDF preview...';
+        loadingText.style.fontSize = '16px';
+        loadingText.style.color = '#64748b';
+        previewContainer.appendChild(loadingText);
+
+        printContainer.appendChild(topBar);
+        printContainer.appendChild(previewContainer);
         document.body.appendChild(printContainer);
 
-        const appStyle = document.createElement('style');
-        appStyle.id = 'print-app-style';
-        appStyle.textContent = `
-          @media print {
-            html, body { overflow: visible !important; height: auto !important; min-height: auto !important; position: static !important; margin: 0 !important; padding: 0 !important; }
-            body > *:not(#print-overlay-container):not(script):not(style) { display: none !important; }
-            #print-overlay-container > div:first-child { display: none !important; }
-            #print-overlay-container { position: static !important; width: 100% !important; height: auto !important; background: transparent !important; overflow: visible !important; }
+        // Create hidden element for PDF generation
+        const hiddenElement = document.createElement('div');
+        hiddenElement.innerHTML = htmlContent;
+        hiddenElement.style.position = 'fixed';
+        hiddenElement.style.left = '0px';
+        hiddenElement.style.top = '0px';
+        hiddenElement.style.width = '210mm';
+        hiddenElement.style.zIndex = '-1000';
+        hiddenElement.id = 'hidden-resume-content';
+        document.body.appendChild(hiddenElement);
+
+        // Allow DOM to render and styles to apply before capturing
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Generate PDF preview
+        const element = hiddenElement.querySelector('.a4-container') || hiddenElement;
+        const userName = resumeData.personal?.name ? resumeData.personal.name.replace(/\s+/g, '-') : 'Resume';
+        const opt = {
+          margin: 0,
+          filename: `${userName}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        try {
+          console.log('Starting PDF generation...');
+          console.log('html2pdf available:', typeof html2pdf);
+          console.log('pdfjsLib available:', typeof pdfjsLib);
+
+          if (!html2pdf) {
+            throw new Error('html2pdf.js library failed to load');
           }
-        `;
-        document.head.appendChild(appStyle);
+          if (!pdfjsLib) {
+            throw new Error('pdfjs-dist library failed to load');
+          }
+
+          const pdf = await html2pdf().set(opt).from(element).outputPdf('blob');
+          console.log('PDF generated successfully, size:', pdf.size);
+
+          // Clean up hidden element immediately to prevent style leakage
+          if (document.body.contains(hiddenElement)) {
+            document.body.removeChild(hiddenElement);
+          }
+
+          const pdfUrl = URL.createObjectURL(pdf);
+          console.log('PDF URL created:', pdfUrl);
+
+          // Load PDF pages as images for preview
+          const loadingTask = pdfjsLib.getDocument(pdfUrl);
+          const pdfDoc = await loadingTask.promise;
+          const numPages = pdfDoc.numPages;
+          console.log('PDF loaded with', numPages, 'pages');
+
+          // Clear loading text
+          previewContainer.innerHTML = '';
+
+          let currentPage = 1;
+          const deletedPages = new Set();
+
+          const updateDeleteBtnState = () => {
+            if (deletedPages.has(currentPage)) {
+              deleteBtn.innerText = '↩️ Restore Current Page';
+              deleteBtn.style.backgroundColor = '#F59E0B'; // Amber
+            } else {
+              deleteBtn.innerText = '🗑️ Delete Current Page';
+              deleteBtn.style.backgroundColor = '#EF4444'; // Red
+            }
+            // Disable if it's the last remaining page to avoid an empty PDF
+            if (!deletedPages.has(currentPage) && deletedPages.size === numPages - 1) {
+              deleteBtn.disabled = true;
+              deleteBtn.style.opacity = '0.5';
+              deleteBtn.title = "Cannot delete the only remaining page";
+            } else {
+              deleteBtn.disabled = false;
+              deleteBtn.style.opacity = '1';
+              deleteBtn.title = "";
+            }
+          };
+
+          const deleteBtn = document.createElement('button');
+          deleteBtn.style.padding = '8px 16px';
+          deleteBtn.style.color = '#fff';
+          deleteBtn.style.border = 'none';
+          deleteBtn.style.borderRadius = '8px';
+          deleteBtn.style.cursor = 'pointer';
+          deleteBtn.style.fontWeight = 'bold';
+          deleteBtn.style.display = numPages > 1 ? 'block' : 'none'; // Only relevant for multi-page
+
+          deleteBtn.onclick = () => {
+            if (deletedPages.has(currentPage)) {
+              deletedPages.delete(currentPage);
+            } else {
+              deletedPages.add(currentPage);
+            }
+            updateDeleteBtnState();
+            
+            // Add visual indication to the canvas
+            const canvas = previewContainer.querySelector('canvas');
+            if (canvas) {
+              if (deletedPages.has(currentPage)) {
+                canvas.style.opacity = '0.4';
+                canvas.style.filter = 'grayscale(100%)';
+              } else {
+                canvas.style.opacity = '1';
+                canvas.style.filter = 'none';
+              }
+            }
+          };
+
+          // Insert delete button before download button
+          buttonContainer.insertBefore(deleteBtn, downloadBtn);
+          updateDeleteBtnState();
+
+          const renderPage = async (pageNum) => {
+            const page = await pdfDoc.getPage(pageNum);
+            const scale = 1.5;
+            const viewport = page.getViewport({ scale });
+
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            canvas.style.maxWidth = '100%';
+            canvas.style.height = 'auto';
+            canvas.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            canvas.style.border = '1px solid #e5e7eb';
+            canvas.style.transition = 'all 0.3s ease';
+
+            if (deletedPages.has(pageNum)) {
+              canvas.style.opacity = '0.4';
+              canvas.style.filter = 'grayscale(100%)';
+            }
+
+            const renderContext = {
+              canvasContext: context,
+              viewport: viewport
+            };
+
+            await page.render(renderContext).promise;
+
+            // Clear previous page
+            const existingCanvas = previewContainer.querySelector('canvas');
+            if (existingCanvas) {
+              previewContainer.removeChild(existingCanvas);
+            }
+
+            previewContainer.appendChild(canvas);
+            updateDeleteBtnState();
+          };
+
+          // Create page navigation if multiple pages
+          if (numPages > 1) {
+            const navContainer = document.createElement('div');
+            navContainer.style.display = 'flex';
+            navContainer.style.justifyContent = 'center';
+            navContainer.style.marginBottom = '10px';
+            navContainer.style.gap = '10px';
+
+            const prevBtn = document.createElement('button');
+            prevBtn.innerText = '← Previous';
+            prevBtn.style.padding = '8px 16px';
+            prevBtn.style.backgroundColor = '#3B82F6';
+            prevBtn.style.color = '#fff';
+            prevBtn.style.border = 'none';
+            prevBtn.style.borderRadius = '6px';
+            prevBtn.style.cursor = 'pointer';
+            prevBtn.disabled = true;
+
+            const pageInfo = document.createElement('span');
+            pageInfo.innerText = `Page 1 of ${numPages}`;
+            pageInfo.style.fontSize = '14px';
+            pageInfo.style.fontWeight = 'bold';
+            pageInfo.style.color = '#374151';
+
+            const nextBtn = document.createElement('button');
+            nextBtn.innerText = 'Next →';
+            nextBtn.style.padding = '8px 16px';
+            nextBtn.style.backgroundColor = '#3B82F6';
+            nextBtn.style.color = '#fff';
+            nextBtn.style.border = 'none';
+            nextBtn.style.borderRadius = '6px';
+            nextBtn.style.cursor = 'pointer';
+
+            navContainer.appendChild(prevBtn);
+            navContainer.appendChild(pageInfo);
+            navContainer.appendChild(nextBtn);
+            previewContainer.appendChild(navContainer);
+
+            prevBtn.onclick = () => {
+              if (currentPage > 1) {
+                currentPage--;
+                renderPage(currentPage);
+                pageInfo.innerText = `Page ${currentPage} of ${numPages}`;
+                prevBtn.disabled = currentPage === 1;
+                nextBtn.disabled = currentPage === numPages;
+              }
+            };
+
+            nextBtn.onclick = () => {
+              if (currentPage < numPages) {
+                currentPage++;
+                renderPage(currentPage);
+                pageInfo.innerText = `Page ${currentPage} of ${numPages}`;
+                prevBtn.disabled = currentPage === 1;
+                nextBtn.disabled = currentPage === numPages;
+              }
+            };
+          }
+
+          // Render first page
+          await renderPage(1);
+
+          // Download functionality
+          downloadBtn.onclick = async () => {
+            try {
+              let finalBlob = pdf;
+
+              if (deletedPages.size > 0) {
+                downloadBtn.innerText = 'Processing...';
+                downloadBtn.disabled = true;
+
+                let PDFDocumentLib;
+                try {
+                  const pdfLibModule = await getPdfLib();
+                  PDFDocumentLib = pdfLibModule.PDFDocument;
+                } catch (e) {
+                  // Fallback to CDN if not natively installed
+                  if (!window.PDFLib) {
+                    await new Promise((resolve, reject) => {
+                      const script = document.createElement('script');
+                      script.src = 'https://unpkg.com/pdf-lib/dist/pdf-lib.min.js';
+                      script.onload = () => resolve();
+                      script.onerror = reject;
+                      document.head.appendChild(script);
+                    });
+                  }
+                  PDFDocumentLib = window.PDFLib.PDFDocument;
+                }
+
+                if (PDFDocumentLib) {
+                  const arrayBuffer = await finalBlob.arrayBuffer();
+                  const pdfDocObj = await PDFDocumentLib.load(arrayBuffer);
+                  
+                  // Remove pages in reverse order to maintain correct indices
+                  const pagesToRemove = Array.from(deletedPages).sort((a, b) => b - a);
+                  for (const pageNum of pagesToRemove) {
+                    pdfDocObj.removePage(pageNum - 1); // 0-indexed
+                  }
+                  
+                  const pdfBytes = await pdfDocObj.save();
+                  finalBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+                } else {
+                  console.warn("Could not load pdf-lib, downloading original PDF.");
+                }
+
+                downloadBtn.innerText = '⬇ Download PDF';
+                downloadBtn.disabled = false;
+              }
+
+              const link = document.createElement('a');
+              link.href = URL.createObjectURL(finalBlob);
+              link.download = `${userName}.pdf`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(link.href);
+            } catch (err) {
+              console.error("PDF Download Error:", err);
+              alert('Failed to download PDF');
+              downloadBtn.innerText = '⬇ Download PDF';
+              downloadBtn.disabled = false;
+            }
+          };
+
+        } catch (err) {
+          if (document.body.contains(hiddenElement)) {
+            document.body.removeChild(hiddenElement);
+          }
+          console.error("PDF Preview Error:", err);
+          console.error("Error details:", err.message, err.stack);
+
+          // Show error message in preview
+          previewContainer.innerHTML = `
+            <div style="color: #ef4444; text-align: center; padding: 40px; max-width: 500px;">
+              <h3 style="margin: 0 0 16px 0; color: #ef4444;">Failed to generate PDF preview</h3>
+              <p style="margin: 0 0 16px 0; color: #64748b;">${err.message || 'Unknown error occurred'}</p>
+              <p style="margin: 0; color: #64748b; font-size: 14px;">Check the browser console for more details.</p>
+              <div style="margin-top: 20px;">
+                <button onclick="location.reload()" style="margin-right: 10px; padding: 8px 16px; background: #3B82F6; color: white; border: none; border-radius: 6px; cursor: pointer;">Retry</button>
+                <button id="show-html-fallback" style="padding: 8px 16px; background: #10B981; color: white; border: none; border-radius: 6px; cursor: pointer;">Show HTML Preview</button>
+              </div>
+            </div>
+          `;
+
+          // Add fallback HTML preview button functionality
+          setTimeout(() => {
+            const fallbackBtn = document.getElementById('show-html-fallback');
+            if (fallbackBtn) {
+              fallbackBtn.onclick = () => {
+                previewContainer.innerHTML = `
+                  <div style="width: 100%; max-width: 800px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <div style="margin-bottom: 20px; text-align: center; color: #64748b; font-size: 14px;">
+                      HTML Preview (PDF generation failed)
+                    </div>
+                    <div style="transform: scale(0.8); transform-origin: top center;">
+                      ${htmlContent}
+                    </div>
+                  </div>
+                `;
+              };
+            }
+          }, 100);
+        }
 
         backBtn.onclick = () => {
           document.body.removeChild(printContainer);
-          document.head.removeChild(appStyle);
         };
       } else {
-        const { uri } = await Print.printToFileAsync({ html, width: 595, height: 842 });
-        await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+        // On Native (iOS/Android), open the native system PDF preview overlay
+        await Print.printAsync({ html: htmlContent });
       }
     } catch (error) {
       console.error("PDF Export Error:", error);
@@ -342,7 +700,7 @@ export default function SavedResumesScreen({ user }) {
                 <View style={styles.expandedPanel}>
                   <View style={styles.webPreviewShell}>
                     <ScrollView style={styles.webPreviewScroller} contentContainerStyle={styles.webPreviewContent} nestedScrollEnabled={true}>
-                      <View style={styles.webA4Sheet}><WebResumeContent finalResume={item.resumeData} theme={item.theme || {}} /></View>
+                      <View style={styles.webA4Sheet}><WebResumeContent finalResume={item.resumeData} theme={item.theme || {}} showPhoto={false} /></View>
                     </ScrollView>
                   </View>
                   <TouchableOpacity style={[styles.exportButton, { marginTop: 16 }]} onPress={() => handleExportPDF(item.resumeData, item.theme, false)}>

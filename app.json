@@ -2,8 +2,8 @@
   "expo": {
     "name": "Resume Builder",
     "slug": "resume-builder-app",
-    "version": "1.0.0",
-    "scheme": "com.yourcompany.resumebuilder",
+    "version": "1.0.1",
+    "scheme": "myresumeapp",
     "platforms": [
       "ios",
       "android",
@@ -13,6 +13,9 @@
     "updates": {
       "fallbackToCacheTimeout": 0
     },
+    "plugins": [
+      "expo-dev-client"
+    ],
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -23,6 +26,11 @@
     "android": {
       "package": "com.yourcompany.resumebuilder",
       "versionCode": 1
+    },
+    "extra": {
+      "eas": {
+        "projectId": "4d33228a-aa62-4c97-a249-3f4859c84602"
+      }
     }
   }
 }

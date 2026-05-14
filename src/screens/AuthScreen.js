@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Image, Platform, Modal } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Image, Platform, Modal, TextInput } from 'react-native'
 import * as WebBrowser from 'expo-web-browser'
 import * as Google from 'expo-auth-session/providers/google'
-import { GoogleAuthProvider, signInWithCredential, onAuthStateChanged, signOut } from 'firebase/auth'
+import * as AuthSession from 'expo-auth-session'
+import { GoogleAuthProvider, signInWithCredential, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../firebaseConfig'
 import FormScreen from './FormScreen'
 import BuilderScreen from './BuilderScreen'
@@ -17,10 +18,13 @@ export default function AuthScreen() {
   const [logoutModalVisible, setLogoutModalVisible] = useState(false)
   const [popupState, setPopupState] = useState({ visible: false, title: '', message: '', isError: false })
   const [currentScreen, setCurrentScreen] = useState('builder')
+  const [emailInput, setEmailInput] = useState('')
+  const [passwordInput, setPasswordInput] = useState('')
+
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     clientId: '321259633436-lu9vmi558o9q3v28e0pui1mnrl2fog5b.apps.googleusercontent.com', // Generic fallback
     webClientId: '321259633436-lu9vmi558o9q3v28e0pui1mnrl2fog5b.apps.googleusercontent.com',
-    androidClientId: '321259633436-l9np6guebuhgl0uiq2jvql1uk4jdageq.apps.googleusercontent.com', // Replace with ID from Google Cloud
+    androidClientId: '321259633436-f4hfinbo4m080r1qseqobn8754uu85ih.apps.googleusercontent.com', // Replace with ID from Google Cloud
     iosClientId: 'PASTE_YOUR_ACTUAL_IOS_CLIENT_ID_HERE'          // Replace with ID from Google Cloud
   })
 
@@ -91,6 +95,36 @@ export default function AuthScreen() {
     } catch (error) {
       console.error('Sign-out failed', error)
       setPopupState({ visible: true, title: 'Sign-Out Error', message: error.message, isError: true })
+      setLoading(false)
+    }
+  }
+
+  const handleEmailSignIn = async () => {
+    if (!emailInput || !passwordInput) {
+      setPopupState({ visible: true, title: 'Missing Info', message: 'Please enter both email and password.', isError: true })
+      return
+    }
+    setLoading(true)
+    try {
+      await signInWithEmailAndPassword(auth, emailInput, passwordInput)
+    } catch (error) {
+      console.error('Email sign in error', error)
+      setPopupState({ visible: true, title: 'Sign-In Error', message: error.message, isError: true })
+      setLoading(false)
+    }
+  }
+
+  const handleEmailSignUp = async () => {
+    if (!emailInput || !passwordInput) {
+      setPopupState({ visible: true, title: 'Missing Info', message: 'Please enter both email and password.', isError: true })
+      return
+    }
+    setLoading(true)
+    try {
+      await createUserWithEmailAndPassword(auth, emailInput, passwordInput)
+    } catch (error) {
+      console.error('Email sign up error', error)
+      setPopupState({ visible: true, title: 'Sign-Up Error', message: error.message, isError: true })
       setLoading(false)
     }
   }
@@ -174,7 +208,36 @@ export default function AuthScreen() {
   return (
     <View style={styles.wrapper}>
       <Text style={styles.title}>Resume Builder</Text>
-      <Text style={styles.subtitle}>Sign in with Google to start building your resume</Text>
+      <Text style={styles.subtitle}>Sign in to start building your resume</Text>
+
+      <TextInput
+        style={styles.input}
+        placeholder="Email Address"
+        placeholderTextColor="#94A3B8"
+        value={emailInput}
+        onChangeText={setEmailInput}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Password"
+        placeholderTextColor="#94A3B8"
+        value={passwordInput}
+        onChangeText={setPasswordInput}
+        secureTextEntry
+      />
+
+      <View style={{ flexDirection: 'row', gap: 12, width: '100%', marginBottom: 24 }}>
+        <TouchableOpacity style={[styles.button, { flex: 1, backgroundColor: '#10B981' }]} onPress={handleEmailSignIn} disabled={loading}>
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Log In</Text>}
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.button, { flex: 1, backgroundColor: '#6366F1' }]} onPress={handleEmailSignUp} disabled={loading}>
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign Up</Text>}
+        </TouchableOpacity>
+      </View>
+
+      <Text style={{ color: '#94A3B8', marginBottom: 24 }}>— OR —</Text>
 
       <TouchableOpacity
         style={[styles.button, (!request || loading) && styles.buttonDisabled]}
@@ -226,6 +289,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 32,
     lineHeight: 22
+  },
+  input: {
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 15,
+    color: '#F8FAFC',
+    marginBottom: 12,
+    width: '100%'
   },
   button: {
     backgroundColor: '#3B82F6',

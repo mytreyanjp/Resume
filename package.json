@@ -5,15 +5,19 @@
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web"
   },
   "dependencies": {
     "@expo/metro-runtime": "~4.0.1",
     "expo": "~52.0.0",
+    "expo-application": "~6.0.2",
     "expo-auth-session": "~6.0.0",
-    "expo-file-system": "~16.0.9",
+    "expo-crypto": "~14.0.2",
+    "expo-dev-client": "~5.0.20",
+    "expo-file-system": "~18.0.12",
+    "expo-image-picker": "~16.0.6",
     "expo-print": "~14.0.3",
     "expo-sharing": "~13.0.1",
     "expo-status-bar": "~2.0.0",
@@ -25,8 +29,8 @@
     "pdfjs-dist": "^3.11.174",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "react-native": "0.76.6",
-    "react-native-web": "~0.21.1"
+    "react-native": "0.76.9",
+    "react-native-web": "~0.19.13"
   },
   "devDependencies": {
     "@babel/core": "^7.22.9",
