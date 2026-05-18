@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Platform, Modal, Image, Linking } from 'react-native';
-import { collection, query, where, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Platform, Modal, Image, Linking, useWindowDimensions, LayoutAnimation, UIManager } from 'react-native';  
 import { db } from '../firebaseConfig';
+import { collection, query, where, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { Feather } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
 import { loadLibraries, getHtml2Pdf, getPdfjsLib, getPdfLib } from '../pdfHelpers';
+import { getSavedResumesStyles, getDynamicStyles } from '../styles';
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 // --- ATS-OPTIMIZED HTML GENERATOR ---
 const ensureAbsoluteUrl = (url) => {
@@ -58,6 +64,8 @@ const generateATSResumeHTML = (resume, showPhoto, theme) => {
         a { color: #2563EB; text-decoration: underline; }
         h1 { font-size: ${18 * fontScale}pt; font-weight: bold; text-align: ${alignStyle}; margin: 0 0 4px 0; text-transform: uppercase; color: #000000; line-height: ${1.05 * lhScale}; }
         h2 { font-size: ${10.5 * fontScale}pt; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000000; margin: 5px 0 3px 0; padding-bottom: 1px; color: #000000; line-height: ${1.1 * lhScale}; break-after: avoid; }
+        h1 { font-size: ${18 * fontScale}pt; font-weight: 400; letter-spacing: 1px; text-align: ${alignStyle}; margin: 0 0 4px 0; text-transform: uppercase; color: #000000; line-height: ${1.05 * lhScale}; }
+        h2 { font-size: ${10.5 * fontScale}pt; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; border-bottom: 1px solid #000000; margin: 5px 0 3px 0; padding-bottom: 1px; color: #000000; line-height: ${1.1 * lhScale}; break-after: avoid; }
         
         .contact-info { text-align: ${alignStyle}; font-size: ${8.5 * fontScale}pt; margin-bottom: 3px; }
         .links-bar { text-align: ${alignStyle}; font-size: ${8.5 * fontScale}pt; margin-bottom: 8px; }
@@ -68,10 +76,12 @@ const generateATSResumeHTML = (resume, showPhoto, theme) => {
         
         .item-header { clear: both; overflow: hidden; margin-bottom: 2px; }
         .item-title { font-weight: bold; float: left; color: #000000; }
+        .item-title { font-weight: 500; float: left; color: #000000; }
         .item-date { float: right; }
         .item-subtitle { font-style: italic; clear: both; }
         
         .item-tech { font-size: ${8.5 * fontScale}pt; font-weight: bold; margin-bottom: 2px; }
+        .item-tech { font-size: ${8.5 * fontScale}pt; font-weight: 500; margin-bottom: 2px; }
         .item-desc { font-size: ${9.25 * fontScale}pt; margin-top: 2px; }
         
         ul { margin: 2px 0 0 14px; padding: 0; }
@@ -117,6 +127,7 @@ const generateATSResumeHTML = (resume, showPhoto, theme) => {
           education: education && education.length > 0 ? `\n        <h2>Education</h2>\n        <div class="section-content">\n          ${education.map(ed => `\n            <div class="item-block">\n              <div class="item-header">\n                <span class="item-title">${makeLink(ed.institution, ed.institutionLink)}</span>\n                <span class="item-date">${makeLink(ed.duration, ed.durationLink)}</span>\n              </div>\n              <div class="item-subtitle">${makeLink(ed.course, ed.courseLink)}</div>\n              ${ed.score ? `<div>${getScoreLabel(ed.score)}: ${makeLink(ed.score, ed.scoreLink)}</div>` : ''}\n            </div>\n          `).join('')}\n        </div>\n      ` : '',
           experience: experience && experience.length > 0 ? `\n        <h2>Work Experience</h2>\n        <div class="section-content">\n          ${experience.map(exp => `\n            <div class="item-block">\n              <div class="item-header">\n                <span class="item-title">${makeLink(exp.company, exp.companyLink)}${exp.role ? ` | <span style="font-weight:normal">${makeLink(exp.role, exp.roleLink)}</span>` : ''}</span>\n                <span class="item-date">${makeLink(exp.duration, exp.durationLink)}</span>\n              </div>\n              <div class="item-desc">${formatContent(exp.summary, exp.summaryLink, theme.experienceBullets ?? false)}</div>\n            </div>\n          `).join('')}\n        </div>\n      ` : '',
           skills: skills ? `\n        <h2>Skills</h2>\n        <div class="section-content">\n          ${makeLink(typeof skills === 'string' ? skills.replace(/\n/g, '<br>') : skills, skillsLink)}\n        </div>\n      ` : '',
+          skills: skills ? `\n        <h2>Skills</h2>\n        <div class="section-content">\n          ${makeLink(typeof skills === 'string' ? skills.split('\n').map(line => { const i = line.indexOf(':'); return i !== -1 ? '<strong style="font-weight:500;">' + line.substring(0, i + 1) + '</strong>' + line.substring(i + 1) : line; }).join('<br>') : skills, skillsLink)}\n        </div>\n      ` : '',
           projects: projects && projects.length > 0 ? `\n        <h2>Projects</h2>\n        <div class="section-content">\n          ${projects.map(proj => `\n            <div class="item-block">\n              <div class="item-header">\n                <span class="item-title">${makeLink(proj.name, proj.nameLink)}${[proj.demoLink && `<a href="${ensureAbsoluteUrl(proj.demoLink)}" style="font-size:9pt; margin-left:6px; font-weight:normal; color:#2563EB; text-decoration:underline;">[Live Demo]</a>`, proj.docLink && `<a href="${ensureAbsoluteUrl(proj.docLink)}" style="font-size:9pt; margin-left:6px; font-weight:normal; color:#2563EB; text-decoration:underline;">[Docs]</a>`, proj.videoLink && `<a href="${ensureAbsoluteUrl(proj.videoLink)}" style="font-size:9pt; margin-left:6px; font-weight:normal; color:#2563EB; text-decoration:underline;">[Video]</a>`, proj.gitLink && `<a href="${ensureAbsoluteUrl(proj.gitLink)}" style="font-size:9pt; margin-left:6px; font-weight:normal; color:#2563EB; text-decoration:underline;">[GitHub]</a>`].filter(Boolean).slice(0, 2).join('')}${proj.role ? ` | <span style="font-weight:normal">${makeLink(proj.role, proj.roleLink)}</span>` : ''}</span>\n              </div>\n              <div class="item-tech">${makeLink(proj.type, proj.typeLink)} | ${makeLink(proj.techStack, proj.techStackLink)}</div>\n              <div class="item-desc">${formatContent(proj.summary, proj.summaryLink, theme.projectsBullets ?? true)}</div>\n            </div>\n          `).join('')}\n        </div>\n      ` : '',
           achievements: achievements && achievements.length > 0 ? `\n        <h2>Accomplishments</h2>\n        <div class="section-content">\n          <ul>\n            ${achievements.map(ach => `<li>${makeLink(ach.text, ach.link)}</li>`).join('')}\n          </ul>\n        </div>\n      ` : ''
         };
@@ -129,49 +140,122 @@ const generateATSResumeHTML = (resume, showPhoto, theme) => {
   `;
 }
 
-const getDynamicStyles = (theme) => {
-  const fontScale = theme?.fontSizeScale || 1;
-  const lhScale = theme?.lineSpacingScale || 1;
-  return {
-    webPreviewName: { fontSize: 22 * fontScale, lineHeight: 22 * fontScale * lhScale },
-    webPreviewMeta: { fontSize: 13 * fontScale, lineHeight: 13 * fontScale * lhScale },
-    webPreviewLinkItem: { fontSize: 13 * fontScale, lineHeight: 13 * fontScale * lhScale },
-    webPreviewHeading: { fontSize: 14 * fontScale, lineHeight: 14 * fontScale * lhScale },
-    webPreviewStrong: { fontSize: 13 * fontScale, lineHeight: 13 * fontScale * lhScale },
-    webPreviewMuted: { fontSize: 12 * fontScale, lineHeight: 12 * fontScale * lhScale },
-    webPreviewBody: { fontSize: 13 * fontScale, lineHeight: 19 * fontScale * lhScale },
-    webPreviewBullet: { fontSize: 13 * fontScale, lineHeight: 19 * fontScale * lhScale },
-  };
-};
-
-const renderWebPreviewText = (text, bulletOnMultiple = false, dStyles = {}) => {
-  if (!text) return null
-  let points = text.split(/\n/).map(p => p.trim()).filter(Boolean)
+const renderWebPreviewText = (text, bulletOnMultiple = false, dStyles = {}, styles = {}) => {
+  if (!text) return null;
+  let points = text.split(/\n/).map(p => p.trim()).filter(Boolean);
   if (points.length === 1 && (text.includes('•') || text.includes('â€¢'))) {
-    points = text.split(/•|â€¢/).map(p => p.trim()).filter(Boolean)
+    points = text.split(/•|â€¢/).map(p => p.trim()).filter(Boolean);
   }
   if ((bulletOnMultiple && points.length > 1) || points.length > 2) {
-    const cleanPoints = points.map(p => p.replace(/^[-•*â€¢]\s*/, ''))
+    const cleanPoints = points.map(p => p.replace(/^[-•*â€¢]\s*/, ''));
     return cleanPoints.map((point, idx) => (
       <Text key={idx} style={[styles.webPreviewBullet, dStyles.webPreviewBullet]}>• {point}</Text>
-    ))
+    ));
   }
-  return <Text style={[styles.webPreviewBody, dStyles.webPreviewBody]}>{text}</Text>
+  return <Text style={[styles.webPreviewBody, dStyles.webPreviewBody]}>{text}</Text>;
 };
 
-const WebResumeContent = React.memo(({ finalResume, theme, showPhoto }) => {
+const WebResumeContent = React.memo(({ finalResume, theme, showPhoto, appTheme }) => {
+  const styles = getSavedResumesStyles(appTheme);
   const dStyles = getDynamicStyles(theme);
   const getScoreLabel = (score) => String(score).includes('.') ? 'CGPA' : 'Percentage';
   const alignStyle = showPhoto && finalResume.personal?.photoURL ? 'left' : 'center';
   const defaultSectionOrder = ['summary', 'education', 'experience', 'skills', 'projects', 'achievements'];
-  
+
   const webSections = {
-    summary: finalResume.summary ? ( <View key="summary" style={styles.webPreviewSection}><Text style={[styles.webPreviewHeading, dStyles.webPreviewHeading]}>Summary</Text>{renderWebPreviewText(finalResume.summary, false, dStyles)}</View> ) : null,
-    education: finalResume.education?.length ? ( <View key="education" style={styles.webPreviewSection}><Text style={[styles.webPreviewHeading, dStyles.webPreviewHeading]}>Education</Text>{finalResume.education.map((ed, idx) => (<View key={idx} style={styles.webPreviewItem}><View style={styles.webPreviewItemHeader}><Text style={[styles.webPreviewStrong, dStyles.webPreviewStrong]}>{ed.institution}</Text><Text style={[styles.webPreviewMuted, dStyles.webPreviewMuted]}>{ed.duration}</Text></View><Text style={[styles.webPreviewBody, dStyles.webPreviewBody]}>{ed.course}</Text>{ed.score ? <Text style={[styles.webPreviewMuted, dStyles.webPreviewMuted]}>{getScoreLabel(ed.score)}: {ed.score}</Text> : null}</View>))}</View> ) : null,
-    experience: finalResume.experience?.length ? ( <View key="experience" style={styles.webPreviewSection}><Text style={[styles.webPreviewHeading, dStyles.webPreviewHeading]}>Work Experience</Text>{finalResume.experience.map((exp, idx) => (<View key={idx} style={styles.webPreviewItem}><View style={styles.webPreviewItemHeader}><Text style={[styles.webPreviewStrong, dStyles.webPreviewStrong]}>{[exp.company, exp.role].filter(Boolean).join(' | ')}</Text>{exp.duration ? <Text style={[styles.webPreviewMuted, dStyles.webPreviewMuted]}>{exp.duration}</Text> : null}</View>{renderWebPreviewText(exp.summary, theme?.experienceBullets ?? false, dStyles)}</View>))}</View> ) : null,
-    skills: finalResume.skills ? ( <View key="skills" style={styles.webPreviewSection}><Text style={[styles.webPreviewHeading, dStyles.webPreviewHeading]}>Skills</Text>{typeof finalResume.skills === 'string' ? finalResume.skills.split('\n').map((line, idx) => { const colonIdx = line.indexOf(':'); if (colonIdx !== -1) { return <Text key={idx} style={[styles.webPreviewBody, dStyles.webPreviewBody]}><Text style={{ fontWeight: 'bold' }}>{line.substring(0, colonIdx + 1)}</Text>{line.substring(colonIdx + 1)}</Text>; } return <Text key={idx} style={[styles.webPreviewBody, dStyles.webPreviewBody]}>{line}</Text>; }) : <Text style={[styles.webPreviewBody, dStyles.webPreviewBody]}>{finalResume.skills}</Text>}</View> ) : null,
-    projects: finalResume.projects?.length ? ( <View key="projects" style={styles.webPreviewSection}><Text style={[styles.webPreviewHeading, dStyles.webPreviewHeading]}>Projects</Text>{finalResume.projects.map((proj, idx) => { const topLinks = [proj.demoLink && { url: proj.demoLink, label: 'Live Demo' }, proj.docLink && { url: proj.docLink, label: 'Docs' }, proj.videoLink && { url: proj.videoLink, label: 'Video' }, proj.gitLink && { url: proj.gitLink, label: 'GitHub' }].filter(Boolean).slice(0, 2); return ( <View key={idx} style={styles.webPreviewItem}><View style={styles.webPreviewItemHeader}><View style={{ flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', flex: 1 }}><Text style={[styles.webPreviewStrong, dStyles.webPreviewStrong]}>{proj.name}</Text>{topLinks.map((link, i) => <Text key={i} style={[styles.webPreviewLinkItem, dStyles.webPreviewLinkItem, { marginLeft: 8, fontSize: 11, fontWeight: 'normal' }]} onPress={() => Linking.openURL(ensureAbsoluteUrl(link.url))}>[{link.label}]</Text>)}</View>{proj.role ? <Text style={[styles.webPreviewMuted, dStyles.webPreviewMuted]}>{proj.role}</Text> : null}</View><Text style={[styles.webPreviewMuted, dStyles.webPreviewMuted]}>{[proj.type, proj.techStack].filter(Boolean).join(' | ')}</Text>{renderWebPreviewText(proj.summary, theme?.projectsBullets ?? true, dStyles)}</View> ) })}</View> ) : null,
-    achievements: finalResume.achievements?.length ? ( <View key="achievements" style={styles.webPreviewSection}><Text style={[styles.webPreviewHeading, dStyles.webPreviewHeading]}>Accomplishments</Text>{finalResume.achievements.map((ach, idx) => (<Text key={idx} style={[styles.webPreviewBullet, dStyles.webPreviewBullet]}>• {ach.text}</Text>))}</View> ) : null
+    summary: finalResume.summary ? (
+      <View key="summary" style={styles.webPreviewSection}>
+        <Text style={[styles.webPreviewHeading, dStyles.webPreviewHeading]}>Summary</Text>
+        {renderWebPreviewText(finalResume.summary, false, dStyles, styles)}
+      </View>
+    ) : null,
+    education: finalResume.education?.length ? (
+      <View key="education" style={styles.webPreviewSection}>
+        <Text style={[styles.webPreviewHeading, dStyles.webPreviewHeading]}>Education</Text>
+        {finalResume.education.map((ed, idx) => (
+          <View key={idx} style={styles.webPreviewItem}>
+            <View style={styles.webPreviewItemHeader}>
+              <Text style={[styles.webPreviewStrong, dStyles.webPreviewStrong]}>{ed.institution}</Text>
+              <Text style={[styles.webPreviewMuted, dStyles.webPreviewMuted]}>{ed.duration}</Text>
+            </View>
+            <Text style={[styles.webPreviewBody, dStyles.webPreviewBody]}>{ed.course}</Text>
+            {ed.score ? <Text style={[styles.webPreviewMuted, dStyles.webPreviewMuted]}>{getScoreLabel(ed.score)}: {ed.score}</Text> : null}
+          </View>
+        ))}
+      </View>
+    ) : null,
+    experience: finalResume.experience?.length ? (
+      <View key="experience" style={styles.webPreviewSection}>
+        <Text style={[styles.webPreviewHeading, dStyles.webPreviewHeading]}>Work Experience</Text>
+        {finalResume.experience.map((exp, idx) => (
+          <View key={idx} style={styles.webPreviewItem}>
+            <View style={styles.webPreviewItemHeader}>
+              <Text style={[styles.webPreviewStrong, dStyles.webPreviewStrong]}>{[exp.company, exp.role].filter(Boolean).join(' | ')}</Text>
+              {exp.duration ? <Text style={[styles.webPreviewMuted, dStyles.webPreviewMuted]}>{exp.duration}</Text> : null}
+            </View>
+            {renderWebPreviewText(exp.summary, theme?.experienceBullets ?? false, dStyles, styles)}
+          </View>
+        ))}
+      </View>
+    ) : null,
+    skills: finalResume.skills ? (
+      <View key="skills" style={styles.webPreviewSection}>
+        <Text style={[styles.webPreviewHeading, dStyles.webPreviewHeading]}>Skills</Text>
+        {typeof finalResume.skills === 'string' ? finalResume.skills.split('\n').map((line, idx) => {
+          const colonIdx = line.indexOf(':');
+          if (colonIdx !== -1) {
+            return (
+              <Text key={idx} style={[styles.webPreviewBody, dStyles.webPreviewBody]}>
+                <Text style={{ fontWeight: 'bold' }}>{line.substring(0, colonIdx + 1)}</Text>
+                <Text style={{ fontWeight: '500' }}>{line.substring(0, colonIdx + 1)}</Text>
+                {line.substring(colonIdx + 1)}
+              </Text>
+            );
+          }
+          return <Text key={idx} style={[styles.webPreviewBody, dStyles.webPreviewBody]}>{line}</Text>;
+        }) : (
+          <Text style={[styles.webPreviewBody, dStyles.webPreviewBody]}>{finalResume.skills}</Text>
+        )}
+      </View>
+    ) : null,
+    projects: finalResume.projects?.length ? (
+      <View key="projects" style={styles.webPreviewSection}>
+        <Text style={[styles.webPreviewHeading, dStyles.webPreviewHeading]}>Projects</Text>
+        {finalResume.projects.map((proj, idx) => {
+          const topLinks = [
+            proj.demoLink && { url: proj.demoLink, label: 'Live Demo' },
+            proj.docLink && { url: proj.docLink, label: 'Docs' },
+            proj.videoLink && { url: proj.videoLink, label: 'Video' },
+            proj.gitLink && { url: proj.gitLink, label: 'GitHub' },
+          ].filter(Boolean).slice(0, 2);
+          return (
+            <View key={idx} style={styles.webPreviewItem}>
+              <View style={styles.webPreviewItemHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', flex: 1 }}>
+                  <Text style={[styles.webPreviewStrong, dStyles.webPreviewStrong]}>{proj.name}</Text>
+                  {topLinks.map((link, i) => (
+                    <Text key={i} style={[styles.webPreviewLinkItem, dStyles.webPreviewLinkItem, { marginLeft: 8, fontSize: 11, fontWeight: 'normal' }]} onPress={() => Linking.openURL(ensureAbsoluteUrl(link.url))}>
+                      [{link.label}]
+                    </Text>
+                  ))}
+                </View>
+                {proj.role ? <Text style={[styles.webPreviewMuted, dStyles.webPreviewMuted]}>{proj.role}</Text> : null}
+              </View>
+              <Text style={[styles.webPreviewMuted, dStyles.webPreviewMuted]}>{[proj.type, proj.techStack].filter(Boolean).join(' | ')}</Text>
+              {renderWebPreviewText(proj.summary, theme?.projectsBullets ?? true, dStyles, styles)}
+            </View>
+          );
+        })}
+      </View>
+    ) : null,
+    achievements: finalResume.achievements?.length ? (
+      <View key="achievements" style={styles.webPreviewSection}>
+        <Text style={[styles.webPreviewHeading, dStyles.webPreviewHeading]}>Accomplishments</Text>
+        {finalResume.achievements.map((ach, idx) => (
+          <Text key={idx} style={[styles.webPreviewBullet, dStyles.webPreviewBullet]}>• {ach.text}</Text>
+        ))}
+      </View>
+    ) : null,
   };
 
   return (
@@ -198,12 +282,31 @@ const WebResumeContent = React.memo(({ finalResume, theme, showPhoto }) => {
   );
 });
 
-export default function SavedResumesScreen({ user }) {
+const ScaledPreview = ({ item, previewScale, styles, appTheme }) => {
+  const [contentHeight, setContentHeight] = useState(1075);
+  return (
+    <View style={{ width: 760 * previewScale, height: contentHeight * previewScale, alignSelf: 'center', overflow: 'hidden' }}>
+      <View 
+        onLayout={(e) => setContentHeight(Math.max(1075, e.nativeEvent.layout.height))}
+        style={[styles.webA4Sheet, { transform: [{ scale: previewScale }], transformOrigin: 'top left' }]}
+      >
+        <WebResumeContent finalResume={item.resumeData} theme={item.theme || {}} showPhoto={false} appTheme={appTheme} />
+      </View>
+    </View>
+  );
+};
+
+export default function SavedResumesScreen({ user, appTheme }) {
+  const { width: windowWidth } = useWindowDimensions();
+  const styles = getSavedResumesStyles(appTheme)
   const [savedResumes, setSavedResumes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleteResumeId, setDeleteResumeId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [popupState, setPopupState] = useState({ visible: false, title: '', message: '', isError: false });
+
+  const containerWidth = windowWidth > 0 ? windowWidth - 100 : 300;
+  const previewScale = Math.max(0.2, Math.min(1, containerWidth / 760));
   
   const fetchResumes = async () => {
     setLoading(true);
@@ -226,6 +329,11 @@ export default function SavedResumesScreen({ user }) {
   useEffect(() => {
     fetchResumes();
   }, []);
+
+  const toggleExpand = (id) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedId(expandedId === id ? null : id);
+  };
 
   const executeDelete = async () => {
     const id = deleteResumeId;
@@ -262,7 +370,7 @@ export default function SavedResumesScreen({ user }) {
         printContainer.style.left = '0';
         printContainer.style.width = '100vw';
         printContainer.style.height = '100vh';
-        printContainer.style.backgroundColor = '#1E293B';
+        printContainer.style.backgroundColor = appTheme.bg;
         printContainer.style.zIndex = '99999';
         printContainer.style.display = 'flex';
         printContainer.style.flexDirection = 'column';
@@ -272,39 +380,46 @@ export default function SavedResumesScreen({ user }) {
         topBar.style.justifyContent = 'space-between';
         topBar.style.alignItems = 'center';
         topBar.style.padding = '16px 24px';
-        topBar.style.backgroundColor = '#1E293B';
-        topBar.style.color = '#fff';
-        topBar.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+        topBar.style.backgroundColor = 'transparent';
+        topBar.style.color = appTheme.text;
+        topBar.style.boxShadow = 'none';
         
         const title = document.createElement('h2');
-        title.innerText = 'PDF Preview';
+        title.innerText = 'PDF';
         title.style.margin = '0';
-        title.style.fontSize = '18px';
-        title.style.fontWeight = 'bold';
+        title.style.fontSize = '30px';
+        title.style.fontWeight = '300';
+        title.style.letterSpacing = '1px';
+        title.style.fontFamily = 'Talina';
+        title.style.transform = 'translateY(-10px)';
 
         const buttonContainer = document.createElement('div');
         buttonContainer.style.display = 'flex';
         buttonContainer.style.gap = '10px';
 
         const downloadBtn = document.createElement('button');
-        downloadBtn.innerText = '⬇ Download PDF';
-        downloadBtn.style.padding = '10px 20px';
-        downloadBtn.style.backgroundColor = '#10B981';
-        downloadBtn.style.color = '#fff';
+        downloadBtn.innerText = 'Download PDF';
+        downloadBtn.style.padding = '8px 14px';
+        downloadBtn.style.backgroundColor = appTheme.primary;
+        downloadBtn.style.color = appTheme.primaryText;
         downloadBtn.style.border = 'none';
         downloadBtn.style.borderRadius = '8px';
         downloadBtn.style.cursor = 'pointer';
-        downloadBtn.style.fontWeight = 'bold';
+        downloadBtn.style.fontWeight = '500';
+        downloadBtn.style.fontFamily = 'Talina';
+        downloadBtn.style.letterSpacing = '0.5px';
 
         const backBtn = document.createElement('button');
         backBtn.innerText = '← Back';
-        backBtn.style.padding = '8px 16px';
-        backBtn.style.backgroundColor = '#334155';
-        backBtn.style.color = '#fff';
-        backBtn.style.border = 'none';
+        backBtn.style.padding = '4px 4px';
+        backBtn.style.backgroundColor = appTheme.surface;
+        backBtn.style.color = appTheme.text;
+        backBtn.style.border = `1px solid ${appTheme.border}`;
         backBtn.style.borderRadius = '8px';
         backBtn.style.cursor = 'pointer';
-        backBtn.style.fontWeight = 'bold';
+        backBtn.style.fontWeight = '400';
+        backBtn.style.fontFamily = 'Talina';
+        backBtn.style.letterSpacing = '0.5px';
         
         buttonContainer.appendChild(downloadBtn);
 
@@ -319,7 +434,7 @@ export default function SavedResumesScreen({ user }) {
         previewContainer.style.flex = '1';
         previewContainer.style.overflow = 'auto';
         previewContainer.style.padding = '20px';
-        previewContainer.style.backgroundColor = '#f8fafc';
+        previewContainer.style.backgroundColor = appTheme.bg;
         previewContainer.style.display = 'flex';
         previewContainer.style.flexDirection = 'column';
         previewContainer.style.alignItems = 'center';
@@ -328,7 +443,8 @@ export default function SavedResumesScreen({ user }) {
         const loadingText = document.createElement('div');
         loadingText.innerText = 'Generating PDF preview...';
         loadingText.style.fontSize = '16px';
-        loadingText.style.color = '#64748b';
+        loadingText.style.color = appTheme.textMuted;
+        loadingText.style.fontFamily = 'Talina';
         previewContainer.appendChild(loadingText);
 
         printContainer.appendChild(topBar);
@@ -395,13 +511,21 @@ export default function SavedResumesScreen({ user }) {
           let currentPage = 1;
           const deletedPages = new Set();
 
+          const bottomControls = document.createElement('div');
+          bottomControls.style.display = 'flex';
+          bottomControls.style.flexDirection = 'column';
+          bottomControls.style.alignItems = 'center';
+          bottomControls.style.gap = '16px';
+          bottomControls.style.paddingBottom = '32px';
+          previewContainer.appendChild(bottomControls);
+
           const updateDeleteBtnState = () => {
             if (deletedPages.has(currentPage)) {
-              deleteBtn.innerText = '↩️ Restore Current Page';
-              deleteBtn.style.backgroundColor = '#F59E0B'; // Amber
+              deleteBtn.innerText = 'Restore Current Page';
+              deleteBtn.style.backgroundColor = appTheme.textMuted;
             } else {
-              deleteBtn.innerText = '🗑️ Delete Current Page';
-              deleteBtn.style.backgroundColor = '#EF4444'; // Red
+              deleteBtn.innerText = 'Delete Current Page';
+              deleteBtn.style.backgroundColor = appTheme.error;
             }
             // Disable if it's the last remaining page to avoid an empty PDF
             if (!deletedPages.has(currentPage) && deletedPages.size === numPages - 1) {
@@ -416,12 +540,16 @@ export default function SavedResumesScreen({ user }) {
           };
 
           const deleteBtn = document.createElement('button');
-          deleteBtn.style.padding = '8px 16px';
-          deleteBtn.style.color = '#fff';
+          deleteBtn.style.padding = '6px 12px';
           deleteBtn.style.border = 'none';
+          deleteBtn.style.color = appTheme.primaryText;
+          deleteBtn.style.border = `1px solid ${appTheme.border}`;
+          deleteBtn.style.backgroundColor = appTheme.surface;
           deleteBtn.style.borderRadius = '8px';
           deleteBtn.style.cursor = 'pointer';
-          deleteBtn.style.fontWeight = 'bold';
+          deleteBtn.style.fontWeight = '500';
+          deleteBtn.style.fontFamily = 'Talina';
+          deleteBtn.style.letterSpacing = '0.5px';
           deleteBtn.style.display = numPages > 1 ? 'block' : 'none'; // Only relevant for multi-page
 
           deleteBtn.onclick = () => {
@@ -445,8 +573,7 @@ export default function SavedResumesScreen({ user }) {
             }
           };
 
-          // Insert delete button before download button
-          buttonContainer.insertBefore(deleteBtn, downloadBtn);
+          bottomControls.appendChild(deleteBtn);
           updateDeleteBtnState();
 
           const renderPage = async (pageNum) => {
@@ -461,7 +588,7 @@ export default function SavedResumesScreen({ user }) {
             canvas.style.maxWidth = '100%';
             canvas.style.height = 'auto';
             canvas.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-            canvas.style.border = '1px solid #e5e7eb';
+            canvas.style.border = `1px solid ${appTheme.border}`;
             canvas.style.transition = 'all 0.3s ease';
 
             if (deletedPages.has(pageNum)) {
@@ -481,8 +608,7 @@ export default function SavedResumesScreen({ user }) {
             if (existingCanvas) {
               previewContainer.removeChild(existingCanvas);
             }
-
-            previewContainer.appendChild(canvas);
+            previewContainer.insertBefore(canvas, bottomControls);
             updateDeleteBtnState();
           };
 
@@ -496,33 +622,38 @@ export default function SavedResumesScreen({ user }) {
 
             const prevBtn = document.createElement('button');
             prevBtn.innerText = '← Previous';
-            prevBtn.style.padding = '8px 16px';
-            prevBtn.style.backgroundColor = '#3B82F6';
-            prevBtn.style.color = '#fff';
-            prevBtn.style.border = 'none';
+            prevBtn.style.padding = '6px 12px';
+            prevBtn.style.backgroundColor = appTheme.surface;
+            prevBtn.style.color = appTheme.text;
+            prevBtn.style.border = `1px solid ${appTheme.border}`;
             prevBtn.style.borderRadius = '6px';
             prevBtn.style.cursor = 'pointer';
+            prevBtn.style.fontFamily = 'Talina';
+            prevBtn.style.letterSpacing = '0.5px';
             prevBtn.disabled = true;
 
             const pageInfo = document.createElement('span');
             pageInfo.innerText = `Page 1 of ${numPages}`;
             pageInfo.style.fontSize = '14px';
-            pageInfo.style.fontWeight = 'bold';
-            pageInfo.style.color = '#374151';
+            pageInfo.style.fontWeight = '400';
+            pageInfo.style.color = appTheme.text;
+            pageInfo.style.fontFamily = 'Talina';
 
             const nextBtn = document.createElement('button');
             nextBtn.innerText = 'Next →';
-            nextBtn.style.padding = '8px 16px';
-            nextBtn.style.backgroundColor = '#3B82F6';
-            nextBtn.style.color = '#fff';
-            nextBtn.style.border = 'none';
+            nextBtn.style.padding = '6px 12px';
+            nextBtn.style.backgroundColor = appTheme.surface;
+            nextBtn.style.color = appTheme.text;
+            nextBtn.style.border = `1px solid ${appTheme.border}`;
             nextBtn.style.borderRadius = '6px';
             nextBtn.style.cursor = 'pointer';
+            nextBtn.style.fontFamily = 'Talina';
+            nextBtn.style.letterSpacing = '0.5px';
 
             navContainer.appendChild(prevBtn);
             navContainer.appendChild(pageInfo);
             navContainer.appendChild(nextBtn);
-            previewContainer.appendChild(navContainer);
+            bottomControls.appendChild(navContainer);
 
             prevBtn.onclick = () => {
               if (currentPage > 1) {
@@ -619,13 +750,13 @@ export default function SavedResumesScreen({ user }) {
 
           // Show error message in preview
           previewContainer.innerHTML = `
-            <div style="color: #ef4444; text-align: center; padding: 40px; max-width: 500px;">
-              <h3 style="margin: 0 0 16px 0; color: #ef4444;">Failed to generate PDF preview</h3>
-              <p style="margin: 0 0 16px 0; color: #64748b;">${err.message || 'Unknown error occurred'}</p>
-              <p style="margin: 0; color: #64748b; font-size: 14px;">Check the browser console for more details.</p>
-              <div style="margin-top: 20px;">
-                <button onclick="location.reload()" style="margin-right: 10px; padding: 8px 16px; background: #3B82F6; color: white; border: none; border-radius: 6px; cursor: pointer;">Retry</button>
-                <button id="show-html-fallback" style="padding: 8px 16px; background: #10B981; color: white; border: none; border-radius: 6px; cursor: pointer;">Show HTML Preview</button>
+            <div style="text-align: center; padding: 40px; max-width: 700px; margin: 0 auto;">
+              <h3 style="margin: 0 0 16px 0; color: #ef4444; font-family: 'Gondens'; font-weight: 300; transform: translateY(-10px);">FAILED TO GENERATE PDF PREVIEW</h3>
+              <p style="margin: 0 0 16px 0; color: ${appTheme.textMuted}; font-family: 'Talina';">${err.message || 'Unknown error occurred'}</p>
+              <p style="margin: 0 0 24px 0; color: ${appTheme.textMuted}; font-size: 14px; font-family: 'Talina';">Check the browser console for more details.</p>
+              <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+                <button onclick="location.reload()" style="padding: 10px 18px; background: ${appTheme.primary}; color: ${appTheme.primaryText}; border: none; border-radius: 6px; cursor: pointer; font-family: 'Talina'; letter-spacing: 0.5px;">Retry</button>
+                <button id="show-html-fallback" style="padding: 10px 18px; background: ${appTheme.surface}; color: ${appTheme.text}; border: 1px solid ${appTheme.border}; border-radius: 6px; cursor: pointer; font-family: 'Talina'; letter-spacing: 0.5px;">Show HTML Preview</button>
               </div>
             </div>
           `;
@@ -637,7 +768,8 @@ export default function SavedResumesScreen({ user }) {
               fallbackBtn.onclick = () => {
                 previewContainer.innerHTML = `
                   <div style="width: 100%; max-width: 800px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                    <div style="margin-bottom: 20px; text-align: center; color: #64748b; font-size: 14px;">
+                    <div style="margin-bottom: 20px; text-align: center; color: #64748b; font-size: 14px; font-family: 'Talina';">
+                    <div style="margin-bottom: 20px; text-align: center; color: #000; font-size: 14px; font-weight: bold; font-family: 'Talina';">
                       HTML Preview (PDF generation failed)
                     </div>
                     <div style="transform: scale(0.8); transform-origin: top center;">
@@ -666,7 +798,7 @@ export default function SavedResumesScreen({ user }) {
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center' }]}>
-        <ActivityIndicator size="large" color="#3B82F6" />
+        <ActivityIndicator size="large" color={appTheme.text} />
       </View>
     );
   }
@@ -674,7 +806,7 @@ export default function SavedResumesScreen({ user }) {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.header}>Your Confirmed Resumes</Text>
+        <Text style={styles.header}>SAVED RESUMES</Text>
         {savedResumes.length === 0 ? (
           <Text style={styles.emptyText}>No saved resumes yet. Head over to the Builder to tailor and confirm one!</Text>
         ) : (
@@ -682,7 +814,7 @@ export default function SavedResumesScreen({ user }) {
             <View key={item.id} style={styles.card}>
               <TouchableOpacity 
                 style={styles.cardHeader}
-                onPress={() => setExpandedId(expandedId === item.id ? null : item.id)}
+                onPress={() => toggleExpand(item.id)}
                 activeOpacity={0.7}
               >
                 <View>
@@ -691,20 +823,21 @@ export default function SavedResumesScreen({ user }) {
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <TouchableOpacity onPress={() => setDeleteResumeId(item.id)} style={{ padding: 8 }}>
-                    <Feather name="trash-2" size={20} color="#F87171" />
+                    <Feather name="trash-2" size={20} color={appTheme.textMuted} />
                   </TouchableOpacity>
-                  <Feather name={expandedId === item.id ? "chevron-up" : "chevron-down"} size={20} color="#94A3B8" style={{ marginLeft: 8 }} />
+                  <Feather name={expandedId === item.id ? "chevron-up" : "chevron-down"} size={20} color={appTheme.textMuted} style={{ marginLeft: 8 }} />
                 </View>
               </TouchableOpacity>
               {expandedId === item.id && (
                 <View style={styles.expandedPanel}>
                   <View style={styles.webPreviewShell}>
                     <ScrollView style={styles.webPreviewScroller} contentContainerStyle={styles.webPreviewContent} nestedScrollEnabled={true}>
-                      <View style={styles.webA4Sheet}><WebResumeContent finalResume={item.resumeData} theme={item.theme || {}} showPhoto={false} /></View>
+                      <ScaledPreview item={item} previewScale={previewScale} styles={styles} appTheme={appTheme} />
                     </ScrollView>
                   </View>
                   <TouchableOpacity style={[styles.exportButton, { marginTop: 16 }]} onPress={() => handleExportPDF(item.resumeData, item.theme, false)}>
-                    <Feather name="download" size={16} color="#fff" style={{ marginRight: 8 }} /><Text style={styles.exportButtonText}>Export ATS PDF</Text>
+                    
+                    <Text style={styles.exportButtonText}>EXPORT</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -735,11 +868,12 @@ export default function SavedResumesScreen({ user }) {
       <Modal visible={popupState.visible} transparent={true} animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={[styles.successModalTitle, popupState.isError && { color: '#EF4444' }]}>{popupState.title}</Text>
+            <Text style={[styles.successModalTitle, popupState.isError && { color: appTheme.error }]}>{popupState.isError ? '[ERROR] ' : ''}{popupState.title}</Text>
             <Text style={styles.modalMessage}>{popupState.message}</Text>
             <View style={styles.modalButtons}>
-              <TouchableOpacity onPress={() => setPopupState({ ...popupState, visible: false })} style={[styles.modalConfirmBtn, { backgroundColor: popupState.isError ? '#EF4444' : '#10B981' }]}>
-                <Text style={styles.modalConfirmText}>OK</Text>
+              <TouchableOpacity onPress={() => setPopupState({ ...popupState, visible: false })} style={[styles.modalConfirmBtn, { backgroundColor: appTheme.primary }]}>
+
+                <Text style={[styles.modalConfirmText, { color: appTheme.primaryText }]}>OK</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -748,73 +882,3 @@ export default function SavedResumesScreen({ user }) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F172A' },
-  content: { padding: 20, paddingBottom: 60 },
-  header: { fontSize: 24, fontWeight: '700', color: '#F8FAFC', marginBottom: 20 },
-  emptyText: { color: '#94A3B8', fontSize: 15, textAlign: 'center', marginTop: 40 },
-  card: {
-    backgroundColor: '#1E293B',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#334155'
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  roleName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#F8FAFC',
-    marginBottom: 4
-  },
-  date: {
-    fontSize: 13,
-    color: '#94A3B8'
-  },
-  exportButton: {
-    backgroundColor: '#3B82F6',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 8
-  },
-  exportButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600'
-  },
-  expandedPanel: { borderTopWidth: 1, borderTopColor: '#334155', paddingTop: 16, marginTop: 16 },
-  webPreviewShell: { height: 400, width: '100%', overflow: 'hidden', borderRadius: 8, borderWidth: 1, borderColor: '#334155', backgroundColor: '#0F172A' },
-  webPreviewScroller: { height: '100%', maxHeight: '100%', backgroundColor: '#0F172A' },
-  webPreviewContent: { padding: 12, minHeight: '100%' },
-  webA4Sheet: { alignSelf: 'center', width: '100%', maxWidth: 760, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0', overflow: 'hidden' },
-  webCompactCard: { paddingVertical: 24, paddingHorizontal: 24 },
-  webPreviewName: { fontSize: 22, fontWeight: 'bold', color: '#000', textAlign: 'center', marginBottom: 6 },
-  webPreviewMeta: { fontSize: 13, color: '#475569', textAlign: 'center', marginBottom: 4 },
-  webPreviewLinkItem: { fontSize: 13, color: '#2563EB', textDecorationLine: 'underline' },
-  webPreviewSection: { marginBottom: 10 },
-  webPreviewHeading: { fontSize: 14, fontWeight: 'bold', color: '#000', borderBottomWidth: 1, borderBottomColor: '#000', paddingBottom: 4, marginBottom: 4, textTransform: 'uppercase' },
-  webPreviewItem: { marginBottom: 8 },
-  webPreviewItemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2 },
-  webPreviewStrong: { fontSize: 13, fontWeight: '700', color: '#111827', marginBottom: 2 },
-  webPreviewMuted: { fontSize: 12, color: '#64748B', marginBottom: 4 },
-  webPreviewBody: { fontSize: 13, color: '#334155', lineHeight: 19 },
-  webPreviewBullet: { fontSize: 13, color: '#334155', lineHeight: 19, marginBottom: 4 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  modalContent: { backgroundColor: '#1E293B', padding: 24, borderRadius: 16, width: '100%', maxWidth: 400, borderWidth: 1, borderColor: '#334155' },
-  modalTitle: { color: '#F8FAFC', fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
-  successModalTitle: { color: '#10B981', fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
-  modalMessage: { color: '#94A3B8', fontSize: 14, marginBottom: 24, lineHeight: 20 },
-  modalButtons: { flexDirection: 'row', justifyContent: 'flex-end' },
-  modalCancelBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, marginRight: 12 },
-  modalCancelText: { color: '#94A3B8', fontWeight: '600' },
-  modalConfirmBtn: { backgroundColor: '#EF4444', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
-  modalConfirmText: { color: '#fff', fontWeight: 'bold' }
-});

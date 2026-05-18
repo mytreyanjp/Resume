@@ -1,0 +1,338 @@
+import { StyleSheet } from 'react-native';
+
+// --- ANIMATION CONFIGURATIONS ---
+export const ANIMATION_CONFIG = {
+  welcomeTranslateY: 20,
+  welcomeFadeDuration: 600,
+  authFadeDuration: 400,
+  welcomeOutDuration: 300,
+};
+
+// --- DYNAMIC TYPOGRAPHY CONFIGURATIONS ---
+export const getDynamicStyles = (theme) => {
+  const fontScale = theme?.fontSizeScale || 1;
+  const lhScale = theme?.lineSpacingScale || 1;
+  return {
+    webPreviewName: { fontSize: 22 * fontScale, lineHeight: 22 * fontScale * lhScale },
+    webPreviewMeta: { fontSize: 13 * fontScale, lineHeight: 13 * fontScale * lhScale },
+    webPreviewLinkItem: { fontSize: 13 * fontScale, lineHeight: 13 * fontScale * lhScale },
+    webPreviewHeading: { fontSize: 14 * fontScale, lineHeight: 14 * fontScale * lhScale },
+    webPreviewStrong: { fontSize: 13 * fontScale, lineHeight: 13 * fontScale * lhScale },
+    webPreviewMuted: { fontSize: 12 * fontScale, lineHeight: 12 * fontScale * lhScale },
+    webPreviewBody: { fontSize: 13 * fontScale, lineHeight: 19 * fontScale * lhScale },
+    webPreviewBullet: { fontSize: 13 * fontScale, lineHeight: 19 * fontScale * lhScale },
+    resumeName: { fontSize: 24 * fontScale, lineHeight: 24 * fontScale * lhScale },
+    resumeContactItem: { fontSize: 13 * fontScale, lineHeight: 13 * fontScale * lhScale },
+    resumeLinkItem: { fontSize: 13 * fontScale, lineHeight: 13 * fontScale * lhScale },
+    resumeSectionTitle: { fontSize: 16 * fontScale, lineHeight: 16 * fontScale * lhScale },
+    resumeText: { fontSize: 13 * fontScale, lineHeight: 20 * fontScale * lhScale },
+    resumeItemTitle: { fontSize: 14 * fontScale, lineHeight: 14 * fontScale * lhScale },
+    resumeItemDate: { fontSize: 13 * fontScale, lineHeight: 13 * fontScale * lhScale },
+    resumeItemSubtitle: { fontSize: 13 * fontScale, lineHeight: 13 * fontScale * lhScale },
+    projectLinkItem: { fontSize: 12 * fontScale, lineHeight: 12 * fontScale * lhScale }
+  };
+};
+
+// --- SCREEN STYLE CONFIGURATIONS ---
+
+export const getAuthStyles = (appTheme) => StyleSheet.create({
+  wrapper: {
+    flex: 1,
+    padding: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: appTheme.bg
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '700',
+    fontWeight: '300',
+    letterSpacing: 1,
+    marginBottom: 12,
+    color: appTheme.text
+  },
+  subtitle: {
+    fontSize: 16,
+    color: appTheme.textMuted,
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 22,
+    fontFamily: 'Talina'
+  },
+  input: {
+    backgroundColor: appTheme.inputBg,
+    borderWidth: 1,
+    borderColor: appTheme.border,
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 15,
+    color: appTheme.text,
+    marginBottom: 12,
+    width: '100%',
+    fontFamily: 'cabin'
+  },
+  button: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    width: '100%',
+    alignItems: 'center'
+  },
+  buttonDisabled: {
+    opacity: 0.6
+  },
+  buttonText: {
+    fontSize: 16,
+    fontFamily:'Talina',
+    letterSpacing: 0.5
+  },
+  profileCard: {
+    width: '100%',
+    padding: 24,
+    borderRadius: 16,
+    backgroundColor: appTheme.surface,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
+    alignItems: 'center'
+  },
+  logoutButton: {
+    borderColor: appTheme.primary,
+    borderWidth: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 14
+  },
+  logoutText: {
+    color: appTheme.primary,
+    fontWeight: '400',
+    fontFamily: 'Talina'
+  },
+  helpText: {
+    marginTop: 28,
+    color: appTheme.textMuted,
+    textAlign: 'center',
+    fontSize: 13,
+    fontFamily: 'Talina'
+  },
+  topBar: {
+    backgroundColor: 'transparent',
+    paddingVertical: 12,
+    paddingTop: 48,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  topLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center'
+  },
+  topCenter: {
+    flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  topBarTitle: {
+    color: appTheme.text,
+    fontSize: 24,
+    fontFamily: 'Talina',
+    fontWeight: '200',
+    letterSpacing: 0.5
+  },
+  topRight: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center'
+  },
+  topBarAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 12
+  },
+  menuOverlay: { flex: 1, backgroundColor: 'transparent' },
+  dropdownMenu: { position: 'absolute', top: 90, right: 20, backgroundColor: appTheme.surface, borderRadius: 12, padding: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5, borderWidth: 1, borderColor: appTheme.border, minWidth: 170 },
+  menuItem: { flexDirection: 'row', alignItems: 'center', padding: 12 },
+  menuItemText: { color: appTheme.text, fontSize: 15, fontWeight: '500' },
+  menuItemText: { color: appTheme.text, fontSize: 15, fontWeight: '400', fontFamily: 'Talina' },
+  menuDivider: { height: 1, backgroundColor: appTheme.border, marginVertical: 4 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContent: { backgroundColor: appTheme.surface, padding: 24, borderRadius: 16, width: '100%', maxWidth: 400, borderWidth: 1, borderColor: appTheme.border },
+  modalTitle: { color: appTheme.text, fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  modalTitle: { color: appTheme.text, fontSize: 18, fontWeight: '400', marginBottom: 12, fontFamily: 'Talina' },
+  modalMessage: { color: appTheme.textMuted, fontSize: 14, marginBottom: 24, lineHeight: 20, fontFamily: 'Talina' },
+  modalButtons: { flexDirection: 'row', justifyContent: 'flex-end' },
+  modalCancelBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, marginRight: 12 },
+  modalCancelText: { color: appTheme.textMuted, fontWeight: '600' },
+  modalCancelText: { color: appTheme.textMuted, fontWeight: '400', fontFamily: 'Talina' },
+  modalConfirmBtn: { backgroundColor: appTheme.primary, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
+  modalConfirmText: { color: appTheme.primaryText, fontWeight: '500', fontFamily: 'Talina' }
+});
+
+export const getFormStyles = (appTheme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: appTheme.bg },
+  content: { padding: 20, paddingBottom: 60 },
+  card: { backgroundColor: appTheme.surface, padding: 20, borderRadius: 16, marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 2 },
+  sectionTitle: { fontSize: 26,marginTop:12, fontWeight: '300', letterSpacing: 0.5, lineHeight: 50, color: appTheme.text, marginBottom: 16, fontFamily: 'Gondens', transform: [{ translateY: -10 }] },
+  input: { backgroundColor: appTheme.inputBg, borderWidth: 1, borderColor: appTheme.border, borderRadius: 10, padding: 14, fontSize: 15, marginBottom: 12, color: appTheme.text, fontFamily: 'cabin' },
+  textArea: { height: 100, textAlignVertical: 'top' },
+  itemBlock: { marginBottom: 16, borderBottomWidth: 1, borderBottomColor: appTheme.border, paddingBottom: 8 },
+  itemHeaderBlock: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  itemLabel: { color: appTheme.textMuted, fontSize: 14, fontWeight: '600' },
+  itemLabel: { color: appTheme.textMuted, fontSize: 14, fontWeight: '400', fontFamily: 'Talina' },
+  addButton: { alignItems: 'center', paddingVertical: 10 },
+  addButtonText: { color: appTheme.primary, fontWeight: '600', fontSize: 15 },
+  addButtonText: { color: appTheme.primary, fontWeight: '400', fontSize: 15, fontFamily: 'Talina' },
+  saveButton: { backgroundColor: appTheme.primary, paddingVertical: 16, borderRadius: 14, alignItems: 'center', marginTop: 8 },
+  saveButtonText: { color: appTheme.primaryText, fontSize: 18, fontWeight: 'bold' },
+  saveButtonText: { color: appTheme.primaryText, fontSize: 18, fontWeight: '500', letterSpacing: 0.5, fontFamily: 'Talina' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContent: { backgroundColor: appTheme.surface, padding: 24, borderRadius: 16, width: '100%', maxWidth: 400, borderWidth: 1, borderColor: appTheme.border },
+  successModalTitle: { color: appTheme.text, fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  successModalTitle: { color: appTheme.text, fontSize: 18, fontWeight: '400', marginBottom: 12, fontFamily: 'Talina' },
+  modalMessage: { color: appTheme.textMuted, fontSize: 14, marginBottom: 24, lineHeight: 20, fontFamily: 'Talina' },
+  modalButtons: { flexDirection: 'row', justifyContent: 'flex-end' },
+  modalCancelBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, marginRight: 12 },
+  modalCancelText: { color: appTheme.textMuted, fontWeight: '600' },
+  modalCancelText: { color: appTheme.textMuted, fontWeight: '400', fontFamily: 'Talina' },
+  modalConfirmBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
+  modalConfirmText: { color: appTheme.primaryText, fontWeight: 'bold' },
+  modalConfirmText: { color: appTheme.primaryText, fontWeight: '500', fontFamily: 'Talina' },
+  photoUploadBtn: { width: 100, height: 100, borderRadius: 50, backgroundColor: appTheme.inputBg, borderWidth: 1, borderColor: appTheme.border, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  uploadedPhoto: { width: '100%', height: '100%' },
+  photoPlaceholderText: { color: appTheme.textMuted, fontSize: 12, marginTop: 4, fontFamily: 'Talina' }
+});
+
+export const getBuilderStyles = (appTheme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: appTheme.bg },
+  content: { padding: 20 },
+  label: { fontSize: 14, left:'5px', letterSpacing:1,fontWeight: '200', color: appTheme.text, marginBottom: 8, fontFamily: 'cabin' },
+  input: { borderRadius: 10,fontweight:'400', padding: 14, borderBlockColor: appTheme.border, borderBlockWidth: 2,fontSize: 15, color: appTheme.text, marginBottom: 20, fontFamily: 'cabin' },
+  textArea: { height: 160, textAlignVertical: 'top' },
+  generateButton: { backgroundColor: appTheme.primary, paddingVertical: 16, borderRadius: 14, alignItems: 'center' },
+  loadingContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  generateButtonText: { color: appTheme.primaryText, fontSize: 16, fontWeight: 'bold' },
+  generateButtonText: { color: appTheme.primaryText, fontSize: 16, fontWeight: '500', letterSpacing: 0.5, fontFamily: 'Talina' },
+  clearButton: { backgroundColor: 'transparent', borderWidth: 1, borderColor: appTheme.border, paddingVertical: 16, borderRadius: 14, alignItems: 'center', marginTop: 12 },
+  clearButtonText: { color: appTheme.text, fontSize: 16, fontWeight: 'bold' },
+  clearButtonText: { color: appTheme.text, fontSize: 16, fontWeight: '400', fontFamily: 'Talina' },
+  confirmButton: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
+  confirmButtonText: { color: appTheme.primaryText, fontSize: 14, fontWeight: '500', fontFamily: 'Talina' },
+  slidersContainer: { padding: 16, borderRadius: 12, marginBottom: 16 },
+  resultContainer: { marginTop: 30, padding: 16, borderRadius: 12 },
+  successTitle: { fontSize: 45, letterSpacing:2, fontFamily:'Gondens',fontWeight: '200', color: appTheme.text,lineHeight:50, marginBottom: -19, transform: [{ translateY: -10 }] },
+  resultDesc: { fontSize: 14, color: appTheme.textMuted, marginBottom: 16, fontFamily: 'Talina' },  
+  previewRoleTitle: { fontSize: 18, fontWeight: '900', color: appTheme.text, textAlign: 'center', marginBottom: 16, letterSpacing: 1,textAlign: 'left', fontFamily: 'cabin' },
+  webPreviewShell: { height: 720, maxHeight: 720, width: '100%', overflow: 'hidden', borderRadius: 8, borderWidth: 1, borderColor: appTheme.border, backgroundColor: appTheme.bg },
+  webPreviewScroller: { height: '100%', maxHeight: '100%', overflow: 'scroll', backgroundColor: appTheme.bg },
+  webPreviewContent: { padding: 12, minHeight: '100%' },
+  webResumePreview: { alignSelf: 'center', width: '100%', maxWidth: 900, flexShrink: 1 },
+  webA4Sheet: { width: 760, minHeight: 1075, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0', overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 5, elevation: 3 },
+  webCompactCard: { paddingVertical: 28, paddingHorizontal: 32 },
+  webPreviewName: { fontSize: 22, fontWeight: 'bold', color: '#000', textAlign: 'center', marginBottom: 6 },
+  webPreviewName: { fontSize: 22, fontWeight: '400', color: '#000', textAlign: 'center', marginBottom: 6, letterSpacing: 1 },
+  webPreviewMeta: { fontSize: 13, color: '#475569', textAlign: 'center', marginBottom: 4 },
+  webPreviewLinkItem: { fontSize: 13, color: '#2563EB', textDecorationLine: 'underline' },
+  webPreviewSection: { marginBottom: 10 },
+  webPreviewHeading: { fontSize: 14, fontWeight: 'bold', color: '#000', borderBottomWidth: 1, borderBottomColor: '#000', paddingBottom: 4, marginBottom: 4, textTransform: 'uppercase' },
+  webPreviewHeading: { fontSize: 14, fontWeight: '500', color: '#000', borderBottomWidth: 1, borderBottomColor: '#000', paddingBottom: 4, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 },
+  webPreviewItem: { marginBottom: 8 },
+  webPreviewItemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2 },
+  webPreviewStrong: { fontSize: 13, fontWeight: '700', color: '#111827', marginBottom: 2 },
+  webPreviewStrong: { fontSize: 13, fontWeight: '500', color: '#111827', marginBottom: 2 },
+  webPreviewMuted: { fontSize: 12, color: '#64748B', marginBottom: 4 },
+  webPreviewBody: { fontSize: 13, color: '#334155', lineHeight: 19 },
+  webPreviewBullet: { fontSize: 13, color: '#334155', lineHeight: 19, marginBottom: 4 },
+  jsonOutput: { fontFamily: 'monospace', fontSize: 12, color: '#FFFFFF', backgroundColor: '#000000', padding: 10, borderRadius: 8 },
+  resultHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 },
+  photoToggleContainer: { alignItems: 'center' },
+  photoToggleLabel: { color: appTheme.textMuted, fontSize: 12, fontweight:0,marginBottom: 4, fontFamily: 'Talina' },
+  resumePreview: { backgroundColor: '#fff', padding: 24, borderRadius: 8 },
+  resumeName: { fontSize: 24, fontWeight: 'bold', color: '#000', textAlign: 'center', marginBottom: 8 },
+  resumeName: { fontSize: 24, fontWeight: '400', color: '#000', textAlign: 'center', marginBottom: 8, letterSpacing: 1 },
+  resumePhoto: { width: 100, height: 100, borderRadius: 50, alignSelf: 'center', marginBottom: 12 },
+  resumeContacts: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', marginBottom: 8 },
+  resumeContactItem: { fontSize: 13, color: '#333' },
+  resumeLinks: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
+  resumeLinkItem: { fontSize: 13, color: '#2563EB', textDecorationLine: 'underline' },
+  resumeDivider: { height: 1, backgroundColor: '#ccc', marginVertical: 8 },
+  resumeSectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#000', borderBottomWidth: 1, borderBottomColor: '#000', paddingBottom: 4, marginBottom: 8, marginTop: 10, textTransform: 'uppercase' },
+  resumeSectionTitle: { fontSize: 16, fontWeight: '500', color: '#000', borderBottomWidth: 1, borderBottomColor: '#000', paddingBottom: 4, marginBottom: 8, marginTop: 10, textTransform: 'uppercase', letterSpacing: 1 },
+  resumeText: { fontSize: 13, color: '#333', lineHeight: 20 },
+  linkableText: { color: '#2563EB', textDecorationLine: 'underline' },
+  resumeItemBlock: { marginBottom: 10 },
+  resumeItemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 2 },
+  resumeItemTitle: { fontSize: 14, fontWeight: 'bold', color: '#000' },
+  resumeItemTitle: { fontSize: 14, fontWeight: '500', color: '#000' },
+  resumeItemDate: { fontSize: 13, color: '#666', fontStyle: 'italic' },
+  resumeItemSubtitle: { fontSize: 13, fontWeight: '600', color: '#444' },
+  resumeItemSubtitle: { fontSize: 13, fontWeight: '400', color: '#444' },
+  projectLinks: { flexDirection: 'row', gap: 12, marginTop: 6 },
+  projectLinkItem: { fontSize: 12, color: '#2563EB', textDecorationLine: 'underline' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContent: { backgroundColor: appTheme.surface, padding: 24, borderRadius: 16, width: '100%', maxWidth: 400, borderWidth: 1, borderColor: appTheme.border },
+  modalTitle: { color: appTheme.text, fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  successModalTitle: { color: appTheme.text, fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  modalTitle: { color: appTheme.text, fontSize: 18, fontWeight: '400', marginBottom: 12, fontFamily: 'Talina' },
+  successModalTitle: { color: appTheme.text, fontSize: 18, fontWeight: '400', marginBottom: 12, fontFamily: 'Talina' },
+  modalMessage: { color: appTheme.textMuted, fontSize: 14, marginBottom: 24, lineHeight: 20, fontFamily: 'Talina' },
+  modalButtons: { flexDirection: 'row', justifyContent: 'flex-end' },
+  modalCancelBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, marginRight: 12 },
+  modalCancelText: { color: appTheme.textMuted, fontWeight: '600' },
+  modalCancelText: { color: appTheme.textMuted, fontWeight: '400', fontFamily: 'Talina' },
+  modalConfirmBtn: { backgroundColor: appTheme.primary, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
+  modalConfirmText: { color: appTheme.primaryText, fontWeight: '500', fontFamily: 'Talina' }
+});
+
+export const getSavedResumesStyles = (appTheme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: appTheme.bg },
+  content: { padding: 20, paddingBottom: 60 },
+  header: { fontSize: 28, lineHeight:90,fontWeight: '300', color: appTheme.text, marginBottom: 0, letterSpacing: 0.5, fontFamily: 'Gondens', transform: [{ translateY: -10 }] },
+  emptyText: { color: appTheme.textMuted, fontSize: 15, textAlign: 'center', marginTop: 40, fontFamily: 'Talina' },
+  card: { backgroundColor: appTheme.surface, padding: 16, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: appTheme.border },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  roleName: { fontSize: 18, fontWeight: '600', color: appTheme.text, marginBottom: 4 },
+  roleName: { fontSize: 18, fontWeight: '400', color: appTheme.text, marginBottom: 4, fontFamily: 'Talina' },
+  date: { fontSize: 13, color: appTheme.textMuted, fontFamily: 'Talina' },
+  exportButton: { backgroundColor: appTheme.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 8 },
+  exportButtonText: { color: appTheme.primaryText, fontSize: 14, fontWeight: '600' },
+  exportButtonText: { color: appTheme.primaryText, fontSize: 14, fontWeight: '500', letterSpacing: 0.5, fontFamily: 'Talina' },
+  expandedPanel: { borderTopWidth: 1, borderTopColor: appTheme.border, paddingTop: 16, marginTop: 16 },
+  webPreviewShell: { height: 400, width: '100%', overflow: 'hidden', borderRadius: 8, borderWidth: 1, borderColor: appTheme.border, backgroundColor: appTheme.bg },
+  webPreviewScroller: { height: '100%', maxHeight: '100%', backgroundColor: appTheme.bg },
+  webPreviewContent: { padding: 12, minHeight: '100%' },
+  webA4Sheet: { width: 760, minHeight: 1075, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0', overflow: 'hidden' },
+  webCompactCard: { paddingVertical: 24, paddingHorizontal: 24 },
+  webPreviewMeta: { fontSize: 13, color: '#475569', textAlign: 'center', marginBottom: 4 },
+  webPreviewLinkItem: { fontSize: 13, color: '#2563EB', textDecorationLine: 'underline' },
+  webPreviewSection: { marginBottom: 10 },
+  webPreviewHeading: { fontSize: 14, fontWeight: 'bold', color: '#000', borderBottomWidth: 1, borderBottomColor: '#000', paddingBottom: 4, marginBottom: 4, textTransform: 'uppercase' },
+  webPreviewHeading: { fontSize: 14, fontWeight: '500', color: '#000', borderBottomWidth: 1, borderBottomColor: '#000', paddingBottom: 4, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 },
+  webPreviewItem: { marginBottom: 8 },
+  webPreviewItemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2 },
+  webPreviewStrong: { fontSize: 13, fontWeight: '700', color: '#111827', marginBottom: 2 },
+  webPreviewStrong: { fontSize: 13, fontWeight: '500', color: '#111827', marginBottom: 2 },
+  webPreviewMuted: { fontSize: 12, color: '#64748B', marginBottom: 4 },
+  webPreviewBody: { fontSize: 13, color: '#334155', lineHeight: 19 },
+  webPreviewBullet: { fontSize: 13, color: '#334155', lineHeight: 19, marginBottom: 4 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContent: { backgroundColor: appTheme.surface, padding: 24, borderRadius: 16, width: '100%', maxWidth: 400, borderWidth: 1, borderColor: appTheme.border },
+  modalTitle: { color: appTheme.text, fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  successModalTitle: { color: appTheme.text, fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  modalTitle: { color: appTheme.text, fontSize: 18, fontWeight: '400', marginBottom: 12, fontFamily: 'Talina' },
+  successModalTitle: { color: appTheme.text, fontSize: 18, fontWeight: '400', marginBottom: 12, fontFamily: 'Talina' },
+  modalMessage: { color: appTheme.textMuted, fontSize: 14, marginBottom: 24, lineHeight: 20, fontFamily: 'Talina' },
+  modalButtons: { flexDirection: 'row', justifyContent: 'flex-end' },
+  modalCancelBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, marginRight: 12 },
+  modalCancelText: { color: appTheme.textMuted, fontWeight: '600' },
+  modalCancelText: { color: appTheme.textMuted, fontWeight: '400', fontFamily: 'Talina' },
+  modalConfirmBtn: { backgroundColor: appTheme.primary, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
+  modalConfirmText: { color: appTheme.primaryText, fontWeight: '500', fontFamily: 'Talina' }
+});

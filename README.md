@@ -1,4 +1,4 @@
-# Resume Builder App
+# Resume
 
 This repository contains an Expo React Native app for creating a base resume, tailoring it to a job description with Gemini, and exporting or saving ATS-friendly resume versions.
 
@@ -72,6 +72,9 @@ Create a `.env` file in the project root:
 
 ```env
 EXPO_PUBLIC_GEMINI_API_KEY=your_gemini_api_key_here
+EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your_web_client_id_here
+EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=your_android_client_id_here
+EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=your_ios_client_id_here
 ```
 
 Notes:
@@ -114,24 +117,24 @@ You need a Firebase project with:
 
 ## Google sign-in setup
 
-Google OAuth client IDs are currently configured directly in [`src/screens/AuthScreen.js`](/d:/Codes/App/src/screens/AuthScreen.js).
+Google OAuth client IDs are configured via environment variables.
 
-Update these values inside `Google.useIdTokenAuthRequest(...)`:
+Update these values inside your `.env` file:
 
-- `webClientId`
-- `androidClientId`
-- `iosClientId`
+- `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`
+- `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID`
+- `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`
 
-There is also a generic `clientId` fallback in that file.
+There is also a generic `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` fallback for `clientId`.
 
 Minimum setup for this app:
 
 1. Create a Firebase project
 2. Enable Google as an Auth provider in Firebase Authentication
 3. Create OAuth client IDs in Google Cloud / Firebase for the platforms you want to run
-4. Paste those client IDs into `AuthScreen.js`
+4. Paste those client IDs into your `.env` file.
 
-If Google sign-in fails, this file is the first place to check.
+If Google sign-in fails, your `.env` file configuration is the first place to check. Remember to restart the Expo development server after modifying the `.env` file!
 
 ## Firestore data used by the app
 

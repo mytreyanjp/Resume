@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Switch, Image, Linking, Platform, Modal, PanResponder } from 'react-native'
+import { View, Text, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Switch, Image, Linking, Platform, Modal, PanResponder, useWindowDimensions } from 'react-native'
 import { doc, getDoc, setDoc, collection, addDoc, deleteField } from 'firebase/firestore'
 import { Feather } from '@expo/vector-icons'
 import { db } from '../firebaseConfig'
@@ -8,6 +8,7 @@ import * as Sharing from 'expo-sharing'
 import * as FileSystem from 'expo-file-system'
 
 import { loadLibraries, getHtml2Pdf, getPdfjsLib, getPdfLib } from '../pdfHelpers';
+import { getBuilderStyles, getDynamicStyles } from '../styles';
 
 // --- ATS-OPTIMIZED HTML GENERATOR ---
 const ensureAbsoluteUrl = (url) => {
@@ -131,131 +132,25 @@ const generateATSResumeHTML = (resume, showPhoto, theme) => {
   `;
 }
 
-const getDynamicStyles = (theme) => {
-  const fontScale = theme.fontSizeScale || 1;
-  const lhScale = theme.lineSpacingScale || 1;
-  return {
-    webPreviewName: { fontSize: 22 * fontScale, lineHeight: 22 * fontScale * lhScale },
-    webPreviewMeta: { fontSize: 13 * fontScale, lineHeight: 13 * fontScale * lhScale },
-    webPreviewLinkItem: { fontSize: 13 * fontScale, lineHeight: 13 * fontScale * lhScale },
-    webPreviewHeading: { fontSize: 14 * fontScale, lineHeight: 14 * fontScale * lhScale },
-    webPreviewStrong: { fontSize: 13 * fontScale, lineHeight: 13 * fontScale * lhScale },
-    webPreviewMuted: { fontSize: 12 * fontScale, lineHeight: 12 * fontScale * lhScale },
-    webPreviewBody: { fontSize: 13 * fontScale, lineHeight: 19 * fontScale * lhScale },
-    webPreviewBullet: { fontSize: 13 * fontScale, lineHeight: 19 * fontScale * lhScale },
-    resumeName: { fontSize: 24 * fontScale, lineHeight: 24 * fontScale * lhScale },
-    resumeContactItem: { fontSize: 13 * fontScale, lineHeight: 13 * fontScale * lhScale },
-    resumeLinkItem: { fontSize: 13 * fontScale, lineHeight: 13 * fontScale * lhScale },
-    resumeSectionTitle: { fontSize: 16 * fontScale, lineHeight: 16 * fontScale * lhScale },
-    resumeText: { fontSize: 13 * fontScale, lineHeight: 20 * fontScale * lhScale },
-    resumeItemTitle: { fontSize: 14 * fontScale, lineHeight: 14 * fontScale * lhScale },
-    resumeItemDate: { fontSize: 13 * fontScale, lineHeight: 13 * fontScale * lhScale },
-    resumeItemSubtitle: { fontSize: 13 * fontScale, lineHeight: 13 * fontScale * lhScale },
-    projectLinkItem: { fontSize: 12 * fontScale, lineHeight: 12 * fontScale * lhScale }
-  };
-};
-
-const Slider = ({ label, value, min, max, step, onValueChange }) => {
-  const [width, setWidth] = useState(0);
-  const [localValue, setLocalValue] = useState(value);
-  const widthRef = useRef(0);
-  widthRef.current = width;
-
-  const lastSteppedValRef = useRef(value);
-
-  useEffect(() => {
-    setLocalValue(value);
-    lastSteppedValRef.current = value;
-  }, [value]);
-
-  const onValueChangeRef = useRef(onValueChange);
-  onValueChangeRef.current = onValueChange;
-
-  const startValue = useRef(value);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (evt) => {
-        const w = widthRef.current;
-        if (w > 0) {
-          const percent = Math.max(0, Math.min(1, evt.nativeEvent.locationX / w));
-          let newVal = min + percent * (max - min);
-          newVal = Math.max(min, Math.min(max, newVal));
-          
-          startValue.current = newVal;
-          setLocalValue(newVal);
-          
-          let steppedVal = newVal;
-          if (step) steppedVal = Math.round(steppedVal / step) * step;
-          steppedVal = Math.max(min, Math.min(max, steppedVal));
-          
-          // Only trigger parent re-render if the step boundary was actually crossed
-          if (lastSteppedValRef.current !== steppedVal) {
-            lastSteppedValRef.current = steppedVal;
-            onValueChangeRef.current(steppedVal);
-          }
-        }
-      },
-      onPanResponderMove: (evt, gestureState) => {
-        const w = widthRef.current;
-        if (w > 0) {
-          const percentChange = gestureState.dx / w;
-          let newVal = startValue.current + percentChange * (max - min);
-          newVal = Math.max(min, Math.min(max, newVal));
-          
-          setLocalValue(newVal);
-          
-          let steppedVal = newVal;
-          if (step) steppedVal = Math.round(steppedVal / step) * step;
-          steppedVal = Math.max(min, Math.min(max, steppedVal));
-          
-          // Only trigger parent re-render if the step boundary was actually crossed
-          if (lastSteppedValRef.current !== steppedVal) {
-            lastSteppedValRef.current = steppedVal;
-            onValueChangeRef.current(steppedVal);
-          }
-        }
-      },
-      onPanResponderRelease: () => {
-        const w = widthRef.current;
-        if (w > 0) {
-          // Snap the visual dot to the exact step interval upon release
-          let steppedVal = lastSteppedValRef.current;
-          setLocalValue(steppedVal);
-          onValueChangeRef.current(steppedVal);
-        }
-      }
-    })
-  ).current;
-
-  const percent = ((localValue - min) / (max - min)) * 100;
-  const displayValue = step ? Math.round(localValue / step) * step : localValue;
-  const safeDisplayValue = Math.max(min, Math.min(max, displayValue));
-
+const Stepper = ({ icon, value, min, max, step, onValueChange, appTheme }) => {
+  const handleDecrease = () => onValueChange(Math.max(min, value - step));
+  const handleIncrease = () => onValueChange(Math.min(max, value + step));
+  
   return (
-    <View style={{ marginBottom: 16 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-        <Text style={{ color: '#F8FAFC', fontSize: 13, fontWeight: '600' }}>{label}</Text>
-        <Text style={{ color: '#94A3B8', fontSize: 13 }}>{safeDisplayValue.toFixed(2)}x</Text>
-      </View>
-      <View style={{ marginHorizontal: 10 }}>
-        <View 
-          style={{ height: 28, justifyContent: 'center' }}
-          onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-          {...panResponder.panHandlers}
-        >
-          <View style={{ height: 6, backgroundColor: '#334155', borderRadius: 3, width: '100%', position: 'absolute' }} pointerEvents="none" />
-          <View style={{ height: 6, backgroundColor: '#3B82F6', borderRadius: 3, width: `${percent}%`, position: 'absolute' }} pointerEvents="none" />
-          <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#F8FAFC', position: 'absolute', left: `${percent}%`, marginLeft: -11, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 2 }} pointerEvents="none" />
-        </View>
-      </View>
+    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'transparent', borderRadius: 20, borderWidth: 1, borderColor: appTheme.border, paddingHorizontal: 4, paddingVertical: 2 }}>
+      <Feather name={icon} size={14} color={appTheme.textMuted} style={{ marginRight: 2, marginLeft: 2 }} />
+      <TouchableOpacity onPress={handleDecrease} style={{ padding: 4 }}>
+        <Feather name="minus" size={14} color={value <= min ? appTheme.border : appTheme.text} />
+      </TouchableOpacity>
+      <Text style={{ color: appTheme.text, fontSize: 12, fontFamily: 'Talina', width: 28, textAlign: 'center' }}>{value.toFixed(2)}</Text>
+      <TouchableOpacity onPress={handleIncrease} style={{ padding: 4 }}>
+        <Feather name="plus" size={14} color={value >= max ? appTheme.border : appTheme.text} />
+      </TouchableOpacity>
     </View>
   );
-}
+};
 
-export default function BuilderScreen({ user, onGoBack }) {
+export default function BuilderScreen({ user, onGoBack, appTheme }) {
   const defaultSectionOrder = ['summary', 'education', 'experience', 'skills', 'projects', 'achievements'];
   const [jd, setJd] = useState('')
   const [loading, setLoading] = useState(false)
@@ -264,12 +159,15 @@ export default function BuilderScreen({ user, onGoBack }) {
   const [progress, setProgress] = useState(0)
   const [showPhoto, setShowPhoto] = useState(false)
   const [clearModalVisible, setClearModalVisible] = useState(false)
+  const [saveModalVisible, setSaveModalVisible] = useState(false)
   const [theme, setTheme] = useState({ sectionOrder: defaultSectionOrder, projectsBullets: true, experienceBullets: false, fontSizeScale: 1, lineSpacingScale: 1 })
   const [popupState, setPopupState] = useState({ visible: false, title: '', message: '', isError: false })
   const [promptHistory, setPromptHistory] = useState([])
   const progressInterval = useRef(null)
+  const { width: windowWidth } = useWindowDimensions()
   
   const dStyles = React.useMemo(() => getDynamicStyles(theme), [theme.fontSizeScale, theme.lineSpacingScale]);
+  const styles = getBuilderStyles(appTheme);
 
   // Auto-fetch existing tailored resume on load
   useEffect(() => {
@@ -599,7 +497,8 @@ export default function BuilderScreen({ user, onGoBack }) {
     }
   }
 
-  const handleConfirm = async () => {
+  const executeSave = async () => {
+    setSaveModalVisible(false);
     setLoading(true);
     const extractedRole = finalResume?.roleName || 'Tailored Resume';
     try {
@@ -644,7 +543,7 @@ export default function BuilderScreen({ user, onGoBack }) {
         printContainer.style.left = '0';
         printContainer.style.width = '100vw';
         printContainer.style.height = '100vh';
-        printContainer.style.backgroundColor = '#1E293B';
+        printContainer.style.backgroundColor = appTheme.bg;
         printContainer.style.zIndex = '99999';
         printContainer.style.display = 'flex';
         printContainer.style.flexDirection = 'column';
@@ -654,15 +553,17 @@ export default function BuilderScreen({ user, onGoBack }) {
         topBar.style.justifyContent = 'space-between';
         topBar.style.alignItems = 'center';
         topBar.style.padding = '16px 24px';
-        topBar.style.backgroundColor = '#1E293B';
-        topBar.style.color = '#fff';
-        topBar.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+        topBar.style.backgroundColor = 'transparent';
+        topBar.style.color = appTheme.text;
+        topBar.style.boxShadow = 'none';
 
         const title = document.createElement('h2');
-        title.innerText = 'PDF Preview';
+        title.innerText = 'PDF';
         title.style.margin = '0';
-        title.style.fontSize = '18px';
-        title.style.fontWeight = 'bold';
+        title.style.fontSize = '30px';
+        title.style.fontWeight = '300';
+        title.style.letterSpacing = '1px';
+        title.style.fontFamily = 'Talina';
 
         const buttonContainer = document.createElement('div');
         buttonContainer.style.display = 'flex';
@@ -670,23 +571,27 @@ export default function BuilderScreen({ user, onGoBack }) {
 
         const downloadBtn = document.createElement('button');
         downloadBtn.innerText = '⬇ Download PDF';
-        downloadBtn.style.padding = '10px 20px';
-        downloadBtn.style.backgroundColor = '#10B981';
-        downloadBtn.style.color = '#fff';
+        downloadBtn.style.padding = '8px 14px';
+        downloadBtn.style.backgroundColor = appTheme.primary;
+        downloadBtn.style.color = appTheme.primaryText;
         downloadBtn.style.border = 'none';
         downloadBtn.style.borderRadius = '8px';
         downloadBtn.style.cursor = 'pointer';
-        downloadBtn.style.fontWeight = 'bold';
+        downloadBtn.style.fontWeight = '500';
+        downloadBtn.style.fontFamily = 'Talina';
+        downloadBtn.style.letterSpacing = '0.5px';
 
         const backBtn = document.createElement('button');
         backBtn.innerText = '← Back';
-        backBtn.style.padding = '8px 16px';
-        backBtn.style.backgroundColor = '#334155';
-        backBtn.style.color = '#fff';
-        backBtn.style.border = 'none';
+        backBtn.style.padding = '6px 12px';
+        backBtn.style.backgroundColor = appTheme.surface;
+        backBtn.style.color = appTheme.text;
+        backBtn.style.border = `1px solid ${appTheme.border}`;
         backBtn.style.borderRadius = '8px';
         backBtn.style.cursor = 'pointer';
-        backBtn.style.fontWeight = 'bold';
+        backBtn.style.fontWeight = '400';
+        backBtn.style.fontFamily = 'Talina';
+        backBtn.style.letterSpacing = '0.5px';
 
         buttonContainer.appendChild(downloadBtn);
 
@@ -701,7 +606,7 @@ export default function BuilderScreen({ user, onGoBack }) {
         previewContainer.style.flex = '1';
         previewContainer.style.overflow = 'auto';
         previewContainer.style.padding = '20px';
-        previewContainer.style.backgroundColor = '#f8fafc';
+        previewContainer.style.backgroundColor = appTheme.bg;
         previewContainer.style.display = 'flex';
         previewContainer.style.flexDirection = 'column';
         previewContainer.style.alignItems = 'center';
@@ -710,7 +615,8 @@ export default function BuilderScreen({ user, onGoBack }) {
         const loadingText = document.createElement('div');
         loadingText.innerText = 'Generating PDF preview...';
         loadingText.style.fontSize = '16px';
-        loadingText.style.color = '#64748b';
+        loadingText.style.color = appTheme.textMuted;
+        loadingText.style.fontFamily = 'Talina';
         previewContainer.appendChild(loadingText);
 
         printContainer.appendChild(topBar);
@@ -777,13 +683,21 @@ export default function BuilderScreen({ user, onGoBack }) {
           let currentPage = 1;
           const deletedPages = new Set();
 
+          const bottomControls = document.createElement('div');
+          bottomControls.style.display = 'flex';
+          bottomControls.style.flexDirection = 'column';
+          bottomControls.style.alignItems = 'center';
+          bottomControls.style.gap = '16px';
+          bottomControls.style.paddingBottom = '32px';
+          previewContainer.appendChild(bottomControls);
+
           const updateDeleteBtnState = () => {
             if (deletedPages.has(currentPage)) {
-              deleteBtn.innerText = '↩️ Restore Current Page';
-              deleteBtn.style.backgroundColor = '#F59E0B'; // Amber
+              deleteBtn.innerText = 'Restore Current Page';
+              deleteBtn.style.backgroundColor = appTheme.textMuted;
             } else {
-              deleteBtn.innerText = '🗑️ Delete Current Page';
-              deleteBtn.style.backgroundColor = '#EF4444'; // Red
+              deleteBtn.innerText = 'Delete Current Page';
+              deleteBtn.style.backgroundColor = appTheme.error;
             }
             // Disable if it's the last remaining page to avoid an empty PDF
             if (!deletedPages.has(currentPage) && deletedPages.size === numPages - 1) {
@@ -798,12 +712,14 @@ export default function BuilderScreen({ user, onGoBack }) {
           };
 
           const deleteBtn = document.createElement('button');
-          deleteBtn.style.padding = '8px 16px';
+          deleteBtn.style.padding = '6px 12px';
           deleteBtn.style.color = '#fff';
           deleteBtn.style.border = 'none';
           deleteBtn.style.borderRadius = '8px';
           deleteBtn.style.cursor = 'pointer';
-          deleteBtn.style.fontWeight = 'bold';
+          deleteBtn.style.fontWeight = '500';
+          deleteBtn.style.fontFamily = 'Talina';
+          deleteBtn.style.letterSpacing = '0.5px';
           deleteBtn.style.display = numPages > 1 ? 'block' : 'none'; // Only relevant for multi-page
 
           deleteBtn.onclick = () => {
@@ -827,8 +743,7 @@ export default function BuilderScreen({ user, onGoBack }) {
             }
           };
 
-          // Insert delete button before download button
-          buttonContainer.insertBefore(deleteBtn, downloadBtn);
+          bottomControls.appendChild(deleteBtn);
           updateDeleteBtnState();
 
           const renderPage = async (pageNum) => {
@@ -864,7 +779,7 @@ export default function BuilderScreen({ user, onGoBack }) {
               previewContainer.removeChild(existingCanvas);
             }
 
-            previewContainer.appendChild(canvas);
+            previewContainer.insertBefore(canvas, bottomControls);
             updateDeleteBtnState();
           };
 
@@ -878,33 +793,38 @@ export default function BuilderScreen({ user, onGoBack }) {
 
             const prevBtn = document.createElement('button');
             prevBtn.innerText = '← Previous';
-            prevBtn.style.padding = '8px 16px';
-            prevBtn.style.backgroundColor = '#3B82F6';
-            prevBtn.style.color = '#fff';
-            prevBtn.style.border = 'none';
+            prevBtn.style.padding = '6px 12px';
+            prevBtn.style.backgroundColor = appTheme.surface;
+            prevBtn.style.color = appTheme.text;
+            prevBtn.style.border = `1px solid ${appTheme.border}`;
             prevBtn.style.borderRadius = '6px';
             prevBtn.style.cursor = 'pointer';
+            prevBtn.style.fontFamily = 'Talina';
+            prevBtn.style.letterSpacing = '0.5px';
             prevBtn.disabled = true;
 
             const pageInfo = document.createElement('span');
             pageInfo.innerText = `Page 1 of ${numPages}`;
             pageInfo.style.fontSize = '14px';
-            pageInfo.style.fontWeight = 'bold';
-            pageInfo.style.color = '#374151';
+            pageInfo.style.fontWeight = '400';
+            pageInfo.style.color = appTheme.text;
+            pageInfo.style.fontFamily = 'Talina';
 
             const nextBtn = document.createElement('button');
             nextBtn.innerText = 'Next →';
-            nextBtn.style.padding = '8px 16px';
-            nextBtn.style.backgroundColor = '#3B82F6';
-            nextBtn.style.color = '#fff';
-            nextBtn.style.border = 'none';
+            nextBtn.style.padding = '6px 12px';
+            nextBtn.style.backgroundColor = appTheme.surface;
+            nextBtn.style.color = appTheme.text;
+            nextBtn.style.border = `1px solid ${appTheme.border}`;
             nextBtn.style.borderRadius = '6px';
             nextBtn.style.cursor = 'pointer';
+            nextBtn.style.fontFamily = 'Talina';
+            nextBtn.style.letterSpacing = '0.5px';
 
             navContainer.appendChild(prevBtn);
             navContainer.appendChild(pageInfo);
             navContainer.appendChild(nextBtn);
-            previewContainer.appendChild(navContainer);
+            bottomControls.appendChild(navContainer);
 
             prevBtn.onclick = () => {
               if (currentPage > 1) {
@@ -1002,12 +922,12 @@ export default function BuilderScreen({ user, onGoBack }) {
           // Show error message in preview
           previewContainer.innerHTML = `
             <div style="color: #ef4444; text-align: center; padding: 40px; max-width: 500px;">
-              <h3 style="margin: 0 0 16px 0; color: #ef4444;">Failed to generate PDF preview</h3>
-              <p style="margin: 0 0 16px 0; color: #64748b;">${err.message || 'Unknown error occurred'}</p>
-              <p style="margin: 0; color: #64748b; font-size: 14px;">Check the browser console for more details.</p>
+              <h3 style="margin: 0 0 16px 0; color: #ef4444; font-family: 'Gondens'; font-weight: 300; transform: translateY(-10px);">FAILED TO GENERATE PDF PREVIEW</h3>
+              <p style="margin: 0 0 16px 0; color: ${appTheme.textMuted}; font-family: 'Talina';">${err.message || 'Unknown error occurred'}</p>
+              <p style="margin: 0; color: ${appTheme.textMuted}; font-size: 14px; font-family: 'Talina';">Check the browser console for more details.</p>
               <div style="margin-top: 20px;">
-                <button onclick="location.reload()" style="margin-right: 10px; padding: 8px 16px; background: #3B82F6; color: white; border: none; border-radius: 6px; cursor: pointer;">Retry</button>
-                <button id="show-html-fallback" style="padding: 8px 16px; background: #10B981; color: white; border: none; border-radius: 6px; cursor: pointer;">Show HTML Preview</button>
+                <button onclick="location.reload()" style="margin-right: 10px; padding: 8px 16px; background: ${appTheme.primary}; color: ${appTheme.primaryText}; border: none; border-radius: 6px; cursor: pointer; font-family: 'Talina'; letter-spacing: 0.5px;">Retry</button>
+                <button id="show-html-fallback" style="padding: 8px 16px; background: ${appTheme.surface}; color: ${appTheme.text}; border: 1px solid ${appTheme.border}; border-radius: 6px; cursor: pointer; font-family: 'Talina'; letter-spacing: 0.5px;">Show HTML Preview</button>
               </div>
             </div>
           `;
@@ -1019,7 +939,7 @@ export default function BuilderScreen({ user, onGoBack }) {
               fallbackBtn.onclick = () => {
                 previewContainer.innerHTML = `
                   <div style="width: 100%; max-width: 800px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                    <div style="margin-bottom: 20px; text-align: center; color: #64748b; font-size: 14px;">
+                    <div style="margin-bottom: 20px; text-align: center; color: #64748b; font-size: 14px; font-family: 'Talina';">
                       HTML Preview (PDF generation failed)
                     </div>
                     <div style="transform: scale(0.8); transform-origin: top center;">
@@ -1098,6 +1018,20 @@ export default function BuilderScreen({ user, onGoBack }) {
 
     return <Text style={[styles.webPreviewBody, dStyles.webPreviewBody]}>{text}</Text>
   }
+
+  const ScaledWebPreview = ({ finalResume, theme, showPhoto, previewScale }) => {
+    const [contentHeight, setContentHeight] = useState(1075);
+    return (
+      <View style={{ width: 760 * previewScale, height: contentHeight * previewScale, alignSelf: 'center', overflow: 'hidden' }}>
+        <View 
+          onLayout={(e) => setContentHeight(Math.max(1075, e.nativeEvent.layout.height))}
+          style={[styles.webA4Sheet, { transform: [{ scale: previewScale }], transformOrigin: 'top left' }]}
+        >
+          <WebResumeContent finalResume={finalResume} theme={theme} showPhoto={showPhoto} />
+        </View>
+      </View>
+    );
+  };
 
   const WebResumeContent = React.memo(({ finalResume, theme, showPhoto }) => {
       const dStyles = getDynamicStyles(theme);
@@ -1207,10 +1141,11 @@ export default function BuilderScreen({ user, onGoBack }) {
   });
 
   const renderWebResumePreview = () => {
+    const availableWidth = windowWidth > 0 ? windowWidth - 64 : 760; 
+    const previewScale = Math.min(1, availableWidth / 760);
+
     return (
-      <View style={styles.webA4Sheet}>
-        <WebResumeContent finalResume={finalResume} theme={theme} showPhoto={showPhoto} />
-      </View>
+      <ScaledWebPreview finalResume={finalResume} theme={theme} showPhoto={showPhoto} previewScale={previewScale} appTheme={appTheme} />
     );
   };
 
@@ -1220,10 +1155,10 @@ export default function BuilderScreen({ user, onGoBack }) {
       <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 60 }}>
         {!finalResume ? (
           <>
-            <Text style={styles.label}>Paste Job Description</Text>
+            
             <TextInput 
               style={[styles.input, styles.textArea]} 
-              placeholderTextColor="rgba(255, 255, 255, 0.5)"
+              placeholderTextColor={appTheme.textMuted}
               placeholder="Paste the role, requirements, and tech stack here..." 
               value={jd} 
               onChangeText={setJd} 
@@ -1233,7 +1168,7 @@ export default function BuilderScreen({ user, onGoBack }) {
             <TouchableOpacity style={styles.generateButton} onPress={handleGenerate} disabled={loading}>
               {loading ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator color="#fff" size="small" style={{ marginRight: 10 }} />
+                    <ActivityIndicator color={appTheme.primaryText} size="small" style={{ marginRight: 10 }} />
                   <Text style={styles.generateButtonText}>Generating... {progress}%</Text>
                 </View>
               ) : <Text style={styles.generateButtonText}>Generate with AI</Text>}
@@ -1243,39 +1178,20 @@ export default function BuilderScreen({ user, onGoBack }) {
           <>
             <View style={styles.resultContainer}>
               <View style={styles.resultHeaderRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.successTitle}>Resume Generated!</Text>
-                  <Text style={styles.resultDesc}>Review your tailored resume below.</Text>
+              <View style={{ flex: 1, minWidth: 200, justifyContent: 'center' }}>
+                <Text style={[styles.successTitle, { fontSize: Math.max(16, Math.min(30, windowWidth * 0.07)) }]} adjustsFontSizeToFit={true} numberOfLines={1}>RESUME GENERATED</Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <TouchableOpacity style={[styles.confirmButton, { backgroundColor: '#3B82F6', marginRight: 8 }]} onPress={handleExportPDF} disabled={loading}>
-                    <Text style={styles.confirmButtonText}>View PDF</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm} disabled={loading}>
+                  <TouchableOpacity style={[styles.confirmButton, { backgroundColor: appTheme.primary }]} onPress={() => setSaveModalVisible(true)} disabled={loading}>
                     <Text style={styles.confirmButtonText}>Save</Text>
                   </TouchableOpacity>
-                  <View style={[styles.photoToggleContainer, { marginLeft: 16 }]}>
-                    <Text style={styles.photoToggleLabel}>Add Photo</Text>
-                    <Switch 
-                      value={showPhoto} 
-                      onValueChange={setShowPhoto} 
-                      trackColor={{ false: "#334155", true: "#3B82F6" }}
-                      thumbColor={"#f4f3f4"}
-                    />
-                  </View>
                 </View>
               </View>
 
               {/* Extracted Job Role */}
               {finalResume.roleName && (
-                <Text style={styles.previewRoleTitle}>{finalResume.roleName}</Text>
+                <Text style={styles.previewRoleTitle}>{finalResume.roleName} - Preview:</Text>
               )}
-
-              {/* Adjusters */}
-              <View style={styles.slidersContainer}>
-                <Slider label="Font Size" value={theme.fontSizeScale || 1} min={0.8} max={1.5} step={0.05} onValueChange={(val) => setTheme(prev => ({...prev, fontSizeScale: val}))} />
-                <Slider label="Line Spacing" value={theme.lineSpacingScale || 1} min={0.8} max={2.0} step={0.1} onValueChange={(val) => setTheme(prev => ({...prev, lineSpacingScale: val}))} />
-              </View>
 
               {/* VISUAL RESUME LAYOUT */}
               {Platform.OS === 'web' ? (
@@ -1441,12 +1357,23 @@ export default function BuilderScreen({ user, onGoBack }) {
                 })()}
                 </View>
               )}
+
+              {/* Minimalist Adjusters (Attached tightly below resume) */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, marginBottom: 16 }}>
+                <TouchableOpacity style={[styles.confirmButton, { backgroundColor: appTheme.primary, borderWidth: 1, borderColor: appTheme.border }]} onPress={handleExportPDF} disabled={loading}>
+                  <Text style={[styles.confirmButtonText, { color: appTheme.surface }]}>View PDF</Text>
+                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <Stepper icon="type" value={theme.fontSizeScale || 1} min={0.8} max={1.5} step={0.05} onValueChange={(val) => setTheme(prev => ({...prev, fontSizeScale: val}))} appTheme={appTheme} />
+                  <Stepper icon="menu" value={theme.lineSpacingScale || 1} min={0.8} max={2.0} step={0.1} onValueChange={(val) => setTheme(prev => ({...prev, lineSpacingScale: val}))} appTheme={appTheme} />
+                </View>
+              </View>
             </View>
 
-            <Text style={[styles.label, { marginTop: 24 }]}>Request Changes</Text>
+            <Text style={[styles.label, { marginTop: 24 }]}>PROMPT</Text>
             <TextInput 
               style={[styles.input, styles.textArea, { height: 100 }]} 
-              placeholderTextColor="rgba(255, 255, 255, 0.5)"
+              placeholderTextColor={appTheme.textMuted}
               placeholder="E.g., 'Make the summary sound more professional' or 'Add a bullet point about React hooks'" 
               value={refinePrompt} 
               onChangeText={setRefinePrompt} 
@@ -1455,7 +1382,7 @@ export default function BuilderScreen({ user, onGoBack }) {
             <TouchableOpacity style={styles.generateButton} onPress={handleRefine} disabled={loading}>
               {loading ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator color="#fff" size="small" style={{ marginRight: 10 }} />
+                    <ActivityIndicator color={appTheme.primaryText} size="small" style={{ marginRight: 10 }} />
                   <Text style={styles.generateButtonText}>Updating... {progress}%</Text>
                 </View>
               ) : <Text style={styles.generateButtonText}>Update Resume</Text>}
@@ -1486,15 +1413,33 @@ export default function BuilderScreen({ user, onGoBack }) {
         </View>
       </Modal>
 
+      {/* Custom Save Modal */}
+      <Modal visible={saveModalVisible} transparent={true} animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Save Resume</Text>
+            <Text style={styles.modalMessage}>Are you sure you want to save this tailored resume?</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity onPress={() => setSaveModalVisible(false)} style={styles.modalCancelBtn}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={executeSave} style={styles.modalConfirmBtn}>
+                <Text style={styles.modalConfirmText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Generic Popup Modal */}
       <Modal visible={popupState.visible} transparent={true} animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={[styles.successModalTitle, popupState.isError && { color: '#EF4444' }]}>{popupState.title}</Text>
+            <Text style={[styles.successModalTitle, popupState.isError && { color: appTheme.error }]}>{popupState.title}</Text>
             <Text style={styles.modalMessage}>{popupState.message}</Text>
             <View style={styles.modalButtons}>
-              <TouchableOpacity onPress={() => setPopupState({ ...popupState, visible: false })} style={[styles.modalConfirmBtn, { backgroundColor: popupState.isError ? '#EF4444' : '#10B981' }]}>
-                <Text style={styles.modalConfirmText}>OK</Text>
+              <TouchableOpacity onPress={() => setPopupState({ ...popupState, visible: false })} style={[styles.modalConfirmBtn, { backgroundColor: appTheme.primary }]}>
+                <Text style={[styles.modalConfirmText, { color: appTheme.primaryText }]}>OK</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1504,36 +1449,33 @@ export default function BuilderScreen({ user, onGoBack }) {
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F172A' },
+const getStyles = (appTheme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: appTheme.bg },
   content: { padding: 20 },
-  label: { fontSize: 16, fontWeight: '600', color: '#F8FAFC', marginBottom: 8 },
-  input: { backgroundColor: '#0F172A', borderWidth: 1, borderColor: '#334155', borderRadius: 10, padding: 14, fontSize: 15, color: '#F8FAFC', marginBottom: 20 },
+  label: { fontSize: 16, fontWeight: '600', color: appTheme.text, marginBottom: 8 },
+  input: { borderRadius: 10, padding: 14, fontSize: 15, color: appTheme.text, marginBottom: 20 },
   textArea: { height: 160, textAlignVertical: 'top' },
-  generateButton: { backgroundColor: '#3B82F6', paddingVertical: 16, borderRadius: 14, alignItems: 'center' },
+  generateButton: { backgroundColor: appTheme.primary, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
   loadingContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  generateButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  clearButton: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#EF4444', paddingVertical: 16, borderRadius: 14, alignItems: 'center', marginTop: 12 },
-  clearButtonText: { color: '#F87171', fontSize: 16, fontWeight: 'bold' },
-  confirmButton: { backgroundColor: '#10B981', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
-  confirmButtonText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
+  generateButtonText: { color: appTheme.primaryText, fontSize: 16, fontWeight: 'bold' },
+  clearButton: { backgroundColor: 'transparent', borderWidth: 1, borderColor: appTheme.border, paddingVertical: 12, borderRadius: 10, alignItems: 'center', marginTop: 12 },
+  clearButtonText: { color: appTheme.text, fontSize: 16, fontWeight: 'bold' },
+  confirmButton: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8 },
+  confirmButtonText: { color: appTheme.primaryText, fontSize: 14, fontWeight: 'bold' },
   
-  slidersContainer: { backgroundColor: '#0F172A', padding: 16, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: '#334155' },
+  slidersContainer: { padding: 16, borderRadius: 12, marginBottom: 16 },
   
   resultContainer: { 
     marginTop: 30, 
-    backgroundColor: '#1E293B', 
     padding: 16, 
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#334155'
+    borderRadius: 12
   },
-  successTitle: { fontSize: 18, fontWeight: 'bold', color: '#10B981', marginBottom: 8 },
-  resultDesc: { fontSize: 14, color: '#94A3B8', marginBottom: 16 },
+  successTitle: { fontSize: 15, fontWeight: 'bold', color: appTheme.text, marginBottom: 8 },
+  resultDesc: { fontSize: 14, color: appTheme.textMuted, marginBottom: 16 },
   previewRoleTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#F8FAFC',
+    color: appTheme.text,
     textAlign: 'center',
     marginBottom: 16,
     letterSpacing: 0.5
@@ -1545,14 +1487,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#334155',
-    backgroundColor: '#0F172A'
+    borderColor: appTheme.border,
+    backgroundColor: appTheme.bg
   },
   webPreviewScroller: {
     height: '100%',
     maxHeight: '100%',
     overflow: 'scroll',
-    backgroundColor: '#0F172A'
+    backgroundColor: appTheme.bg
   },
   webPreviewContent: {
     padding: 12,
@@ -1565,9 +1507,7 @@ const styles = StyleSheet.create({
     flexShrink: 1
   },
   webA4Sheet: {
-    alignSelf: 'center',
-    width: '100%',
-    maxWidth: 760,
+    width: 760,
     minHeight: 1075,
     backgroundColor: '#fff',
     borderRadius: 8,
@@ -1649,41 +1589,41 @@ const styles = StyleSheet.create({
   jsonOutput: {
     fontFamily: 'monospace',
     fontSize: 12,
-    color: '#F8FAFC',
-    backgroundColor: '#0F172A',
+    color: '#FFFFFF',
+    backgroundColor: '#000000',
     padding: 10,
     borderRadius: 8
   },
   resultHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
   photoToggleContainer: { alignItems: 'center' },
-  photoToggleLabel: { color: '#94A3B8', fontSize: 12, marginBottom: 4 },
+  photoToggleLabel: { color: appTheme.textMuted, fontSize: 12, marginBottom: 4 },
   resumePreview: { backgroundColor: '#fff', padding: 24, borderRadius: 8 },
   resumeName: { fontSize: 24, fontWeight: 'bold', color: '#000', textAlign: 'center', marginBottom: 8 },
   resumePhoto: { width: 100, height: 100, borderRadius: 50, alignSelf: 'center', marginBottom: 12 },
   resumeContacts: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', marginBottom: 8 },
   resumeContactItem: { fontSize: 13, color: '#333' },
   resumeLinks: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
-  resumeLinkItem: { fontSize: 13, color: '#0066cc', textDecorationLine: 'underline' },
+  resumeLinkItem: { fontSize: 13, color: '#2563EB', textDecorationLine: 'underline' },
   resumeDivider: { height: 1, backgroundColor: '#ccc', marginVertical: 8 },
   resumeSectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#000', borderBottomWidth: 1, borderBottomColor: '#000', paddingBottom: 4, marginBottom: 8, marginTop: 10, textTransform: 'uppercase' },
   resumeText: { fontSize: 13, color: '#333', lineHeight: 20 },
-  linkableText: { color: '#0066cc', textDecorationLine: 'underline' },
+  linkableText: { color: '#2563EB', textDecorationLine: 'underline' },
   resumeItemBlock: { marginBottom: 10 },
-  resumeItemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2 },
+  resumeItemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 2 },
   resumeItemTitle: { fontSize: 14, fontWeight: 'bold', color: '#000' },
   resumeItemDate: { fontSize: 13, color: '#666', fontStyle: 'italic' },
   resumeItemSubtitle: { fontSize: 13, fontWeight: '600', color: '#444' },
   projectLinks: { flexDirection: 'row', gap: 12, marginTop: 6 },
-  projectLinkItem: { fontSize: 12, color: '#0066cc', textDecorationLine: 'underline' },
+  projectLinkItem: { fontSize: 12, color: '#2563EB', textDecorationLine: 'underline' },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  modalContent: { backgroundColor: '#1E293B', padding: 24, borderRadius: 16, width: '100%', maxWidth: 400, borderWidth: 1, borderColor: '#334155' },
-  modalTitle: { color: '#F8FAFC', fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
-  successModalTitle: { color: '#10B981', fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
-  modalMessage: { color: '#94A3B8', fontSize: 14, marginBottom: 24, lineHeight: 20 },
+  modalContent: { backgroundColor: appTheme.surface, padding: 24, borderRadius: 16, width: '100%', maxWidth: 400, borderWidth: 1, borderColor: appTheme.border },
+  modalTitle: { color: appTheme.text, fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  successModalTitle: { color: appTheme.text, fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  modalMessage: { color: appTheme.textMuted, fontSize: 14, marginBottom: 24, lineHeight: 20 },
   modalButtons: { flexDirection: 'row', justifyContent: 'flex-end' },
   modalCancelBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, marginRight: 12 },
-  modalCancelText: { color: '#94A3B8', fontWeight: '600' },
-  modalConfirmBtn: { backgroundColor: '#EF4444', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
-  modalConfirmText: { color: '#fff', fontWeight: 'bold' }
+  modalCancelText: { color: appTheme.textMuted, fontWeight: '600' },
+  modalConfirmBtn: { backgroundColor: appTheme.primary, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
+  modalConfirmText: { color: appTheme.primaryText, fontWeight: 'bold' }
 })

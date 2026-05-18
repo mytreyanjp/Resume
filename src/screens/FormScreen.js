@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Image, Platform, Modal } from 'react-native'
+import { View, Text, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, Image, Platform, Modal } from 'react-native'
 import { doc, setDoc, getDoc } from 'firebase/firestore'
 import { db } from '../firebaseConfig'
 import { Feather } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
+import { getFormStyles } from '../styles'
 
-export default function FormScreen({ user, onGoToBuilder }) {
+export default function FormScreen({ user, onGoToBuilder, appTheme }) {
   const [loading, setLoading] = useState(false)
   const [saveStatus, setSaveStatus] = useState(null)
   const [popupState, setPopupState] = useState({ visible: false, title: '', message: '', isError: false, onConfirm: null, showCancel: false })
+  const styles = getFormStyles(appTheme)
 
   // Form States
   const [personal, setPersonal] = useState({
@@ -166,55 +168,43 @@ export default function FormScreen({ user, onGoToBuilder }) {
 
       {/* Personal Info */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Personal Details</Text>
-        <View style={{ alignItems: 'center', marginBottom: 16 }}>
-          <TouchableOpacity onPress={pickImage} style={styles.photoUploadBtn}>
-            {personal.photoURL ? (
-              <Image source={{ uri: personal.photoURL }} style={styles.uploadedPhoto} />
-            ) : (
-              <View style={{ alignItems: 'center' }}>
-                <Feather name="camera" size={24} color="#94A3B8" />
-                <Text style={styles.photoPlaceholderText}>Add Photo</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-        <LinkableInput placeholder="Full Name" value={personal.name} onChangeText={t => setPersonal({ ...personal, name: t })} linkValue={personal.nameLink || ''} onLinkChangeText={t => setPersonal({ ...personal, nameLink: t })} />
-        <TextInput style={styles.input} placeholderTextColor="rgba(255, 255, 255, 0.5)" placeholder="Email ID" value={personal.email} onChangeText={t => setPersonal({ ...personal, email: t })} keyboardType="email-address" />
-        <LinkableInput placeholder="Phone Number" value={personal.phone} onChangeText={t => setPersonal({ ...personal, phone: t })} keyboardType="phone-pad" linkValue={personal.phoneLink || ''} onLinkChangeText={t => setPersonal({ ...personal, phoneLink: t })} />
-        <TextInput style={styles.input} placeholderTextColor="rgba(255, 255, 255, 0.5)" placeholder="LinkedIn URL" value={personal.linkedin} onChangeText={t => setPersonal({ ...personal, linkedin: t })} />
-        <TextInput style={styles.input} placeholderTextColor="rgba(255, 255, 255, 0.5)" placeholder="GitHub URL" value={personal.github} onChangeText={t => setPersonal({ ...personal, github: t })} />
-        <TextInput style={styles.input} placeholderTextColor="rgba(255, 255, 255, 0.5)" placeholder="LeetCode URL" value={personal.leetcode} onChangeText={t => setPersonal({ ...personal, leetcode: t })} />
-        <TextInput style={styles.input} placeholderTextColor="rgba(255, 255, 255, 0.5)" placeholder="Portfolio URL" value={personal.portfolio} onChangeText={t => setPersonal({ ...personal, portfolio: t })} />
+        <Text style={styles.sectionTitle}>PERSONAL DETAILS</Text>
+        <LinkableInput placeholder="Full Name" value={personal.name} onChangeText={t => setPersonal({ ...personal, name: t })} linkValue={personal.nameLink || ''} onLinkChangeText={t => setPersonal({ ...personal, nameLink: t })} appTheme={appTheme} styles={styles} />
+        <TextInput style={styles.input} placeholderTextColor={appTheme.textMuted} placeholder="Email ID" value={personal.email} onChangeText={t => setPersonal({ ...personal, email: t })} keyboardType="email-address" />
+        <LinkableInput placeholder="Phone Number" value={personal.phone} onChangeText={t => setPersonal({ ...personal, phone: t })} keyboardType="phone-pad" linkValue={personal.phoneLink || ''} onLinkChangeText={t => setPersonal({ ...personal, phoneLink: t })} appTheme={appTheme} styles={styles} />
+        <TextInput style={styles.input} placeholderTextColor={appTheme.textMuted} placeholder="LinkedIn URL" value={personal.linkedin} onChangeText={t => setPersonal({ ...personal, linkedin: t })} />
+        <TextInput style={styles.input} placeholderTextColor={appTheme.textMuted} placeholder="GitHub URL" value={personal.github} onChangeText={t => setPersonal({ ...personal, github: t })} />
+        <TextInput style={styles.input} placeholderTextColor={appTheme.textMuted} placeholder="LeetCode URL" value={personal.leetcode} onChangeText={t => setPersonal({ ...personal, leetcode: t })} />
+        <TextInput style={styles.input} placeholderTextColor={appTheme.textMuted} placeholder="Portfolio URL" value={personal.portfolio} onChangeText={t => setPersonal({ ...personal, portfolio: t })} />
       </View>
 
       {/* Skills */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Skills (Base)</Text>
-        <LinkableInput placeholder="React Native, Firebase, JavaScript..." value={skills} onChangeText={setSkills} linkValue={skillsLink} onLinkChangeText={setSkillsLink} multiline />
+        <Text style={styles.sectionTitle}>SKILLS</Text>
+        <LinkableInput placeholder="React Native, Firebase, JavaScript..." value={skills} onChangeText={setSkills} linkValue={skillsLink} onLinkChangeText={setSkillsLink} multiline appTheme={appTheme} styles={styles} />
       </View>
 
       {/* Summary */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Professional Summary</Text>
-        <LinkableInput placeholder="Brief summary about yourself..." value={summary} onChangeText={setSummary} linkValue={summaryLink} onLinkChangeText={setSummaryLink} multiline />
+        <Text style={styles.sectionTitle}>SUMMARY</Text>
+        <LinkableInput placeholder="Brief summary about yourself..." value={summary} onChangeText={setSummary} linkValue={summaryLink} onLinkChangeText={setSummaryLink} multiline appTheme={appTheme} styles={styles} />
       </View>
 
       {/* Education */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Education</Text>
+        <Text style={styles.sectionTitle}>EDUCATION</Text>
         {education.map((ed, index) => (
           <View key={index} style={styles.itemBlock}>
             <View style={styles.itemHeaderBlock}>
               <Text style={styles.itemLabel}>Education {index + 1}</Text>
               <TouchableOpacity onPress={() => removeEducation(index)}>
-                <Feather name="trash-2" size={18} color="#F87171" />
+                <Feather name="trash-2" size={18} color={appTheme.textMuted} />
               </TouchableOpacity>
             </View>
-            <LinkableInput placeholder="Institution Name" value={ed.institution} onChangeText={t => updateEducation(index, 'institution', t)} linkValue={ed.institutionLink || ''} onLinkChangeText={t => updateEducation(index, 'institutionLink', t)} />
-            <LinkableInput placeholder="Course / Degree" value={ed.course} onChangeText={t => updateEducation(index, 'course', t)} linkValue={ed.courseLink || ''} onLinkChangeText={t => updateEducation(index, 'courseLink', t)} />
-            <LinkableInput placeholder="Duration (e.g. 2018 - 2022)" value={ed.duration} onChangeText={t => updateEducation(index, 'duration', t)} linkValue={ed.durationLink || ''} onLinkChangeText={t => updateEducation(index, 'durationLink', t)} />
-            <LinkableInput placeholder="CGPA / Percentage" value={ed.score} onChangeText={t => updateEducation(index, 'score', t)} linkValue={ed.scoreLink || ''} onLinkChangeText={t => updateEducation(index, 'scoreLink', t)} />
+            <LinkableInput placeholder="Institution Name" value={ed.institution} onChangeText={t => updateEducation(index, 'institution', t)} linkValue={ed.institutionLink || ''} onLinkChangeText={t => updateEducation(index, 'institutionLink', t)} appTheme={appTheme} styles={styles} />
+            <LinkableInput placeholder="Course / Degree" value={ed.course} onChangeText={t => updateEducation(index, 'course', t)} linkValue={ed.courseLink || ''} onLinkChangeText={t => updateEducation(index, 'courseLink', t)} appTheme={appTheme} styles={styles} />
+            <LinkableInput placeholder="Duration (e.g. 2018 - 2022)" value={ed.duration} onChangeText={t => updateEducation(index, 'duration', t)} linkValue={ed.durationLink || ''} onLinkChangeText={t => updateEducation(index, 'durationLink', t)} appTheme={appTheme} styles={styles} />
+            <LinkableInput placeholder="CGPA / Percentage" value={ed.score} onChangeText={t => updateEducation(index, 'score', t)} linkValue={ed.scoreLink || ''} onLinkChangeText={t => updateEducation(index, 'scoreLink', t)} appTheme={appTheme} styles={styles} />
           </View>
         ))}
         <TouchableOpacity onPress={addEducation} style={styles.addButton}>
@@ -224,19 +214,19 @@ export default function FormScreen({ user, onGoToBuilder }) {
 
       {/* Work Experience */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Work Experience</Text>
+        <Text style={styles.sectionTitle}>EXPERIENCE</Text>
         {experience.map((exp, index) => (
           <View key={index} style={styles.itemBlock}>
             <View style={styles.itemHeaderBlock}>
               <Text style={styles.itemLabel}>Experience {index + 1}</Text>
               <TouchableOpacity onPress={() => removeExperience(index)}>
-                <Feather name="trash-2" size={18} color="#F87171" />
+                <Feather name="trash-2" size={18} color={appTheme.textMuted} />
               </TouchableOpacity>
             </View>
-            <LinkableInput placeholder="Company Name" value={exp.company} onChangeText={t => updateExperience(index, 'company', t)} linkValue={exp.companyLink || ''} onLinkChangeText={t => updateExperience(index, 'companyLink', t)} />
-            <LinkableInput placeholder="Role / Title" value={exp.role} onChangeText={t => updateExperience(index, 'role', t)} linkValue={exp.roleLink || ''} onLinkChangeText={t => updateExperience(index, 'roleLink', t)} />
-            <LinkableInput placeholder="Duration (e.g. Jan 2021 - Present)" value={exp.duration} onChangeText={t => updateExperience(index, 'duration', t)} linkValue={exp.durationLink || ''} onLinkChangeText={t => updateExperience(index, 'durationLink', t)} />
-            <LinkableInput placeholder="Summary of responsibilities..." value={exp.summary} onChangeText={t => updateExperience(index, 'summary', t)} linkValue={exp.summaryLink || ''} onLinkChangeText={t => updateExperience(index, 'summaryLink', t)} multiline />
+            <LinkableInput placeholder="Company Name" value={exp.company} onChangeText={t => updateExperience(index, 'company', t)} linkValue={exp.companyLink || ''} onLinkChangeText={t => updateExperience(index, 'companyLink', t)} appTheme={appTheme} styles={styles} />
+            <LinkableInput placeholder="Role / Title" value={exp.role} onChangeText={t => updateExperience(index, 'role', t)} linkValue={exp.roleLink || ''} onLinkChangeText={t => updateExperience(index, 'roleLink', t)} appTheme={appTheme} styles={styles} />
+            <LinkableInput placeholder="Duration (e.g. Jan 2021 - Present)" value={exp.duration} onChangeText={t => updateExperience(index, 'duration', t)} linkValue={exp.durationLink || ''} onLinkChangeText={t => updateExperience(index, 'durationLink', t)} appTheme={appTheme} styles={styles} />
+            <LinkableInput placeholder="Summary of responsibilities..." value={exp.summary} onChangeText={t => updateExperience(index, 'summary', t)} linkValue={exp.summaryLink || ''} onLinkChangeText={t => updateExperience(index, 'summaryLink', t)} multiline appTheme={appTheme} styles={styles} />
           </View>
         ))}
         <TouchableOpacity onPress={addExperience} style={styles.addButton}>
@@ -246,24 +236,24 @@ export default function FormScreen({ user, onGoToBuilder }) {
 
       {/* Projects */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Projects</Text>
+        <Text style={styles.sectionTitle}>PROJECTS</Text>
         {projects.map((proj, index) => (
           <View key={index} style={styles.itemBlock}>
             <View style={styles.itemHeaderBlock}>
               <Text style={styles.itemLabel}>Project {index + 1}</Text>
               <TouchableOpacity onPress={() => removeProject(index)}>
-                <Feather name="trash-2" size={18} color="#F87171" />
+                <Feather name="trash-2" size={18} color={appTheme.textMuted} />
               </TouchableOpacity>
             </View>
-            <LinkableInput placeholder="Project Name" value={proj.name} onChangeText={t => updateProject(index, 'name', t)} linkValue={proj.nameLink || ''} onLinkChangeText={t => updateProject(index, 'nameLink', t)} />
-            <LinkableInput placeholder="Project Type (e.g. Academic, Personal, Freelance)" value={proj.type} onChangeText={t => updateProject(index, 'type', t)} linkValue={proj.typeLink || ''} onLinkChangeText={t => updateProject(index, 'typeLink', t)} />
-            <LinkableInput placeholder="Your Role (e.g. Frontend Developer)" value={proj.role} onChangeText={t => updateProject(index, 'role', t)} linkValue={proj.roleLink || ''} onLinkChangeText={t => updateProject(index, 'roleLink', t)} />
-            <LinkableInput placeholder="Tech Stack (e.g. React Native, Firebase)" value={proj.techStack} onChangeText={t => updateProject(index, 'techStack', t)} linkValue={proj.techStackLink || ''} onLinkChangeText={t => updateProject(index, 'techStackLink', t)} />
-            <TextInput style={styles.input} placeholderTextColor="rgba(255, 255, 255, 0.5)" placeholder="GitHub/Git Link (Optional)" value={proj.gitLink} onChangeText={t => updateProject(index, 'gitLink', t)} />
-            <TextInput style={styles.input} placeholderTextColor="rgba(255, 255, 255, 0.5)" placeholder="Documentation Link (Optional)" value={proj.docLink} onChangeText={t => updateProject(index, 'docLink', t)} />
-            <TextInput style={styles.input} placeholderTextColor="rgba(255, 255, 255, 0.5)" placeholder="Video Link (Optional)" value={proj.videoLink} onChangeText={t => updateProject(index, 'videoLink', t)} />
-            <TextInput style={styles.input} placeholderTextColor="rgba(255, 255, 255, 0.5)" placeholder="Live Demo Link (Optional)" value={proj.demoLink} onChangeText={t => updateProject(index, 'demoLink', t)} />
-            <LinkableInput placeholder="2-point summary of the project..." value={proj.summary} onChangeText={t => updateProject(index, 'summary', t)} linkValue={proj.summaryLink || ''} onLinkChangeText={t => updateProject(index, 'summaryLink', t)} multiline />
+            <LinkableInput placeholder="Project Name" value={proj.name} onChangeText={t => updateProject(index, 'name', t)} linkValue={proj.nameLink || ''} onLinkChangeText={t => updateProject(index, 'nameLink', t)} appTheme={appTheme} styles={styles} />
+            <LinkableInput placeholder="Project Type (e.g. Academic, Personal, Freelance)" value={proj.type} onChangeText={t => updateProject(index, 'type', t)} linkValue={proj.typeLink || ''} onLinkChangeText={t => updateProject(index, 'typeLink', t)} appTheme={appTheme} styles={styles} />
+            <LinkableInput placeholder="Your Role (e.g. Frontend Developer)" value={proj.role} onChangeText={t => updateProject(index, 'role', t)} linkValue={proj.roleLink || ''} onLinkChangeText={t => updateProject(index, 'roleLink', t)} appTheme={appTheme} styles={styles} />
+            <LinkableInput placeholder="Tech Stack (e.g. React Native, Firebase)" value={proj.techStack} onChangeText={t => updateProject(index, 'techStack', t)} linkValue={proj.techStackLink || ''} onLinkChangeText={t => updateProject(index, 'techStackLink', t)} appTheme={appTheme} styles={styles} />
+            <TextInput style={styles.input} placeholderTextColor={appTheme.textMuted} placeholder="GitHub/Git Link (Optional)" value={proj.gitLink} onChangeText={t => updateProject(index, 'gitLink', t)} />
+            <TextInput style={styles.input} placeholderTextColor={appTheme.textMuted} placeholder="Documentation Link (Optional)" value={proj.docLink} onChangeText={t => updateProject(index, 'docLink', t)} />
+            <TextInput style={styles.input} placeholderTextColor={appTheme.textMuted} placeholder="Video Link (Optional)" value={proj.videoLink} onChangeText={t => updateProject(index, 'videoLink', t)} />
+            <TextInput style={styles.input} placeholderTextColor={appTheme.textMuted} placeholder="Live Demo Link (Optional)" value={proj.demoLink} onChangeText={t => updateProject(index, 'demoLink', t)} />
+            <LinkableInput placeholder="2-point summary of the project..." value={proj.summary} onChangeText={t => updateProject(index, 'summary', t)} linkValue={proj.summaryLink || ''} onLinkChangeText={t => updateProject(index, 'summaryLink', t)} multiline appTheme={appTheme} styles={styles} />
           </View>
         ))}
         <TouchableOpacity onPress={addProject} style={styles.addButton}>
@@ -273,16 +263,16 @@ export default function FormScreen({ user, onGoToBuilder }) {
 
       {/* Achievements */}
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Achievements</Text>
+        <Text style={styles.sectionTitle}>ACHIEVEMENTS</Text>
         {achievements.map((achievement, index) => (
           <View key={index} style={styles.itemBlock}>
             <View style={styles.itemHeaderBlock}>
               <Text style={styles.itemLabel}>Achievement {index + 1}</Text>
               <TouchableOpacity onPress={() => removeAchievement(index)}>
-                <Feather name="trash-2" size={18} color="#F87171" />
+                <Feather name="trash-2" size={18} color={appTheme.textMuted} />
               </TouchableOpacity>
             </View>
-            <LinkableInput placeholder="Describe an achievement, award, or certification..." value={achievement.text} onChangeText={t => updateAchievement(index, 'text', t)} linkValue={achievement.link || ''} onLinkChangeText={t => updateAchievement(index, 'link', t)} multiline />
+            <LinkableInput placeholder="Describe an achievement, award, or certification..." value={achievement.text} onChangeText={t => updateAchievement(index, 'text', t)} linkValue={achievement.link || ''} onLinkChangeText={t => updateAchievement(index, 'link', t)} multiline appTheme={appTheme} styles={styles} />
           </View>
         ))}
         <TouchableOpacity onPress={addAchievement} style={styles.addButton}>
@@ -291,15 +281,15 @@ export default function FormScreen({ user, onGoToBuilder }) {
       </View>
 
       {/* Save Button */}
-      <TouchableOpacity style={[styles.saveButton, saveStatus === 'success' && { backgroundColor: '#10B981' }, saveStatus === 'error' && { backgroundColor: '#EF4444' }]} onPress={handleSave} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>{saveStatus === 'success' ? 'Saved Successfully' : saveStatus === 'error' ? 'Failed to Save' : 'Save Resume Details'}</Text>}
+      <TouchableOpacity style={[styles.saveButton, saveStatus === 'success' && { backgroundColor: appTheme.primary }, saveStatus === 'error' && { backgroundColor: appTheme.surface }]} onPress={handleSave} disabled={loading}>
+        {loading ? <ActivityIndicator color={appTheme.primaryText} /> : <Text style={[styles.saveButtonText, saveStatus === 'error' && { color: appTheme.error }]}>{saveStatus === 'success' ? 'Saved Successfully' : saveStatus === 'error' ? 'Failed to Save' : 'Save Resume Details'}</Text>}
       </TouchableOpacity>
 
       {/* Generic Popup Modal */}
       <Modal visible={popupState.visible} transparent={true} animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={[styles.successModalTitle, popupState.isError && { color: '#EF4444' }]}>{popupState.title}</Text>
+            <Text style={[styles.successModalTitle, popupState.isError && { color: appTheme.error }]}>{popupState.title}</Text>
             <Text style={styles.modalMessage}>{popupState.message}</Text>
             <View style={styles.modalButtons}>
               {popupState.showCancel && (
@@ -307,7 +297,7 @@ export default function FormScreen({ user, onGoToBuilder }) {
                   <Text style={styles.modalCancelText}>Stay Here</Text>
                 </TouchableOpacity>
               )}
-              <TouchableOpacity onPress={popupState.onConfirm} style={[styles.modalConfirmBtn, { backgroundColor: popupState.isError ? '#EF4444' : '#10B981' }]}>
+              <TouchableOpacity onPress={popupState.onConfirm} style={[styles.modalConfirmBtn, { backgroundColor: appTheme.primary }]}>
                 <Text style={styles.modalConfirmText}>{popupState.showCancel ? 'Tailor Resume' : 'OK'}</Text>
               </TouchableOpacity>
             </View>
@@ -318,97 +308,8 @@ export default function FormScreen({ user, onGoToBuilder }) {
   )
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0F172A'
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 60
-  },
-  card: {
-    backgroundColor: '#1E293B',
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 2
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#F8FAFC',
-    marginBottom: 16
-  },
-  input: {
-    backgroundColor: '#0F172A',
-    borderWidth: 1,
-    borderColor: '#334155',
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 15,
-    marginBottom: 12,
-    color: '#F8FAFC'
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top'
-  },
-  itemBlock: {
-    marginBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#334155',
-    paddingBottom: 8
-  },
-  itemHeaderBlock: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12
-  },
-  itemLabel: {
-    color: '#94A3B8',
-    fontSize: 14,
-    fontWeight: '600'
-  },
-  addButton: {
-    alignItems: 'center',
-    paddingVertical: 10
-  },
-  addButtonText: {
-    color: '#60A5FA',
-    fontWeight: '600',
-    fontSize: 15
-  },
-  saveButton: {
-    backgroundColor: '#3B82F6',
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: 'center',
-    marginTop: 8
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold'
-  },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  modalContent: { backgroundColor: '#1E293B', padding: 24, borderRadius: 16, width: '100%', maxWidth: 400, borderWidth: 1, borderColor: '#334155' },
-  successModalTitle: { color: '#10B981', fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
-  modalMessage: { color: '#94A3B8', fontSize: 14, marginBottom: 24, lineHeight: 20 },
-  modalButtons: { flexDirection: 'row', justifyContent: 'flex-end' },
-  modalCancelBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, marginRight: 12 },
-  modalCancelText: { color: '#94A3B8', fontWeight: '600' },
-  modalConfirmBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
-  modalConfirmText: { color: '#fff', fontWeight: 'bold' }
-})
-
 // Custom component to add a "🔗" toggle button onto generic text inputs
-const LinkableInput = ({ placeholder, value, onChangeText, linkValue, onLinkChangeText, multiline, keyboardType }) => {
+const LinkableInput = ({ placeholder, value, onChangeText, linkValue, onLinkChangeText, multiline, keyboardType, appTheme, styles }) => {
   const [showLink, setShowLink] = React.useState(false)
   
   // If a link was previously saved, show the link input automatically
@@ -420,23 +321,23 @@ const LinkableInput = ({ placeholder, value, onChangeText, linkValue, onLinkChan
     <View style={{ marginBottom: 12 }}>
       <View style={[styles.input, { padding: 0, flexDirection: 'row', alignItems: multiline ? 'flex-start' : 'center', marginBottom: 0 }]}>
         <TextInput
-          style={[{ flex: 1, padding: 14, color: '#F8FAFC', fontSize: 15, textAlignVertical: multiline ? 'top' : 'center' }, multiline && styles.textArea]}
+          style={[{ flex: 1, padding: 14, color: appTheme.text, fontSize: 15, textAlignVertical: multiline ? 'top' : 'center' }, multiline && styles.textArea]}
           placeholder={placeholder}
-          placeholderTextColor="rgba(255, 255, 255, 0.5)"
+          placeholderTextColor={appTheme.textMuted}
           value={value}
           onChangeText={onChangeText}
           multiline={multiline}
           keyboardType={keyboardType}
         />
         <TouchableOpacity onPress={() => setShowLink(!showLink)} style={{ padding: 14 }}>
-          <Feather name="link" size={16} color={showLink || linkValue ? '#3B82F6' : '#64748B'} />
+          <Feather name="link" size={16} color={showLink || linkValue ? appTheme.primary : appTheme.textMuted} />
         </TouchableOpacity>
       </View>
       {showLink && (
         <TextInput
-          style={[styles.input, { marginTop: 8, borderColor: '#3B82F6', marginBottom: 0 }]}
+          style={[styles.input, { marginTop: 8, borderColor: appTheme.primary, marginBottom: 0 }]}
           placeholder={`${placeholder} Link (URL)`}
-          placeholderTextColor="rgba(255, 255, 255, 0.5)"
+          placeholderTextColor={appTheme.textMuted}
           value={linkValue}
           onChangeText={onLinkChangeText}
           keyboardType="url"
